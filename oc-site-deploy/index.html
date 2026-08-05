@@ -1,0 +1,1645 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#1a0d2e" />
+  <title>The Butterfly of Time and Space</title>
+
+  <!-- 字体：马善政体（标题）+ Noto Serif SC（正文）+ ZCOOL XiaoWei（装饰） -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@400;600;700&family=ZCOOL+XiaoWei&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="css/style.css?v=20260804k" />
+  <link rel="stylesheet" href="css/intro.css?v=20260804k" />
+  <link rel="stylesheet" href="css/world.css?v=20260804k" />
+  <link rel="stylesheet" href="css/edit.css?v=20260804k" />
+</head>
+<body>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       开屏动画层
+       ═══════════════════════════════════════════════════════════ -->
+  <div id="intro-screen" class="screen active">
+
+    <!-- 跳过动画按钮 -->
+    <button id="skip-intro" class="skip-intro-btn" title="跳过开屏动画">跳过</button>
+
+    <!-- 动态背景（呼吸缩放 + 浮动光雾 + 光晕脉冲） -->
+    <div class="intro-bg">
+      <div class="intro-bg-image"></div>
+      <div class="intro-bg-haze haze-1"></div>
+      <div class="intro-bg-haze haze-2"></div>
+      <div class="intro-bg-haze haze-3"></div>
+      <div class="intro-bg-glow"></div>
+    </div>
+
+    <!-- 阶段1：「嗨」 -->
+    <div id="stage-hi" class="intro-stage">
+      <span class="intro-text-hi" id="text-hi">嗨</span>
+    </div>
+
+    <!-- 阶段2：「你好呀，我是楚汐言」 -->
+    <div id="stage-name" class="intro-stage hidden">
+      <p class="intro-text-name">你好呀，我叫<span class="name-highlight">楚汐言</span></p>
+    </div>
+
+    <!-- 阶段3：「欢迎来到我的世界~」 -->
+    <div id="stage-welcome" class="intro-stage hidden">
+      <p class="intro-text-welcome">欢迎来到我的世界</p>
+    </div>
+
+    <!-- 阶段4：蝴蝶飞过 + 羽毛飘落 -->
+    <div id="stage-butterfly" class="intro-stage hidden">
+      <div id="butterfly-container"></div>
+      <div id="feather-container"></div>
+    </div>
+
+    <!-- 阶段5：「是否进入」按钮 -->
+    <div id="stage-enter" class="intro-stage hidden">
+      <button id="btn-enter" class="enter-button">
+        <span class="enter-button-text">是否进入</span>
+        <span class="enter-button-glow"></span>
+      </button>
+    </div>
+
+    <!-- 阶段6：宣纸展开过渡 -->
+    <div id="stage-scroll" class="intro-stage hidden">
+      <div class="scroll-unfold-left"></div>
+      <div class="scroll-unfold-right"></div>
+      <div class="scroll-unveil"></div>
+    </div>
+
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════════
+       世界观简介页面
+       ═══════════════════════════════════════════════════════════ -->
+  <div id="world-page" class="screen">
+
+    <!-- 顶部导航条 -->
+    <header class="top-bar">
+      <div class="top-bar-left">
+        <button id="btn-back-intro" class="top-bar-btn">返回</button>
+        <span class="site-title">楚汐言的世界</span>
+      </div>
+      <div class="top-bar-right">
+        <button id="btn-save-archive" class="top-bar-btn" title="保存存档">存档</button>
+        <button id="btn-load-archive" class="top-bar-btn" title="读取存档">读档</button>
+        <button id="btn-export" class="top-bar-btn" title="导出存档文件">导出</button>
+        <button id="btn-import" class="top-bar-btn" title="导入存档文件">导入</button>
+        <button id="btn-delete-archive" class="top-bar-btn top-bar-btn-danger" title="删除全部存档数据">删除存档</button>
+        <button id="btn-publish-display" class="top-bar-btn top-bar-btn-publish" title="导出展示版数据">发布分享</button>
+        <input type="file" id="import-file-input" accept=".json" style="display:none" />
+      </div>
+    </header>
+
+    <!-- 世界观内容区 -->
+    <main class="world-content">
+
+      <!-- 上方图片区（与下方简介融合） -->
+      <section class="world-image-section">
+        <div class="world-image-frame" id="world-image-frame">
+          <div class="world-image-placeholder" id="world-image-placeholder">
+            <div class="placeholder-inner">
+              <svg class="placeholder-icon" viewBox="0 0 64 64" width="48" height="48">
+                <path d="M32 8 L36 24 L52 28 L36 32 L32 48 L28 32 L12 28 L28 24 Z"
+                      fill="none" stroke="rgba(255,200,120,0.4)" stroke-width="1.5" />
+              </svg>
+              <p class="placeholder-text">点击上传世界观配图</p>
+              <p class="placeholder-hint">图片将作为页面顶部视觉，与下方简介融为一体</p>
+            </div>
+          </div>
+          <div class="world-image-display" id="world-image-display"></div>
+          <input type="file" id="world-image-input" accept="image/*" style="display:none" />
+          <!-- 图片与简介的融合渐变 -->
+          <div class="world-image-fade"></div>
+        </div>
+      </section>
+
+      <!-- 下方简介区 -->
+      <section class="world-intro-section">
+        <div class="world-intro-scroll">
+          <div class="scroll-decor-top"></div>
+
+          <h1 class="world-title" contenteditable="true" data-field="worldTitle"
+              data-placeholder="在此输入世界观标题">幻墟·万灵之境</h1>
+
+          <div class="world-divider">
+            <span class="divider-dot"></span>
+            <span class="divider-line"></span>
+            <span class="divider-symbol">破碎的时空之蝶，栖息于空庭的孤凰</span>
+            <span class="divider-line"></span>
+            <span class="divider-dot"></span>
+          </div>
+
+          <div class="world-intro-text" contenteditable="true" data-field="worldIntro"
+               data-placeholder="在此输入世界观简介……&#10;&#10;这片大陆名为「幻墟」，万灵共生，仙魔并立。古老的灵脉贯穿山川，承载着无数生灵的因果与轮回。在这片土地上，每一位修者都在追寻自己的「道」——或为苍生，或为一念，或为那一只翩翩掠过命运长河的蝴蝶。">在此输入世界观简介……</div>
+
+          <div class="scroll-decor-bottom"></div>
+        </div>
+      </section>
+
+      <!-- 继续浏览按钮 -->
+      <div class="world-action">
+        <button id="btn-continue" class="continue-button">
+          <span class="continue-button-text">继续浏览</span>
+          <svg class="continue-button-arrow" viewBox="0 0 24 24" width="20" height="20">
+            <path d="M5 12 L19 12 M13 6 L19 12 L13 18"
+                  fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </button>
+      </div>
+
+    </main>
+
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════════
+       时间线总览页面
+       ═══════════════════════════════════════════════════════════ -->
+  <div id="edit-page" class="screen">
+
+    <header class="top-bar">
+      <div class="top-bar-left">
+        <button id="btn-back-world" class="top-bar-btn">返回世界观</button>
+      </div>
+      <div class="top-bar-right">
+        <span class="page-title">世界（时间）线总览</span>
+      </div>
+    </header>
+
+    <main class="timeline-overview">
+      <div class="timeline-grid">
+
+        <!-- 第1行：居中 — 源初·蝶凰线 -->
+        <div class="grid-row center">
+          <div class="timeline-card" data-timeline="diehuang">
+            <h2 class="timeline-name">源初·蝶凰线</h2>
+            <p class="timeline-tag">本源之始</p>
+            <div class="timeline-preview" data-field="timelineDiehuangPreview"
+                 contenteditable="true"
+                 data-placeholder="点击编辑简介……">一切因果的原点，蝶与凰的最初相逢。</div>
+          </div>
+        </div>
+
+        <!-- 第2行：居中 — 贯通·鬼王线 -->
+        <div class="grid-row center">
+          <div class="timeline-card" data-timeline="guiwang">
+            <h2 class="timeline-name">贯通·鬼王线</h2>
+            <p class="timeline-tag">幻蝶之影</p>
+            <div class="timeline-preview" data-field="timelineGuiwangPreview"
+                 contenteditable="true"
+                 data-placeholder="点击编辑简介……">鬼域与人间的界线被悄然打通。</div>
+          </div>
+        </div>
+
+        <!-- 第3行：三列 — 平行·国师线 + IF线 + 连结·阴阳师线 -->
+        <div class="grid-row spread">
+          <div class="timeline-card" data-timeline="guoshi">
+            <h2 class="timeline-name">平行·国师线</h2>
+            <p class="timeline-tag">命轨交错</p>
+            <div class="timeline-preview" data-field="timelineGuoshiPreview"
+                 contenteditable="true"
+                 data-placeholder="点击编辑简介……">在另一条可能里，执棋者是国师。</div>
+          </div>
+          <div class="timeline-card if-line" data-timeline="ifline">
+            <h2 class="timeline-name">IF线</h2>
+            <p class="timeline-tag">未定之轨</p>
+            <div class="timeline-preview" data-field="timelineIflinePreview"
+                 contenteditable="true"
+                 data-placeholder="点击编辑简介……">如果那一刻的选择不同，一切又将走向何处？</div>
+          </div>
+          <div class="timeline-card" data-timeline="yinyang">
+            <h2 class="timeline-name">连结·阴阳师线</h2>
+            <p class="timeline-tag">宿命定论</p>
+            <div class="timeline-preview" data-field="timelineYinyangPreview"
+                 contenteditable="true"
+                 data-placeholder="点击编辑简介……">与异界阴阳师缔结契约的分支。</div>
+          </div>
+        </div>
+
+        <!-- 第4行：居中 — 收束·校园线 -->
+        <div class="grid-row center">
+          <div class="timeline-card" data-timeline="xiaoyuan">
+            <h2 class="timeline-name">收束·校园线</h2>
+            <p class="timeline-tag">现世收束</p>
+            <div class="timeline-preview" data-field="timelineXiaoyuanPreview"
+                 contenteditable="true"
+                 data-placeholder="点击编辑简介……">所有线索最终汇入平凡的校园日常。</div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- 继续浏览按钮 -->
+      <div class="timeline-action">
+        <button id="btn-continue-edit" class="continue-edit-btn">
+          <span class="continue-edit-btn-text">继续浏览</span>
+          <svg class="continue-edit-btn-arrow" viewBox="0 0 24 24" width="20" height="20">
+            <path d="M5 12 L19 12 M13 6 L19 12 L13 18"
+                  fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </button>
+      </div>
+
+    </main>
+
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════════
+       IF线 · 奇遇环游 · 世界选择器页面
+       ═══════════════════════════════════════════════════════════ -->
+  <div id="if-worlds-page" class="screen">
+
+    <header class="top-bar">
+      <div class="top-bar-left">
+        <button id="btn-back-ifworlds" class="top-bar-btn">返回总览</button>
+      </div>
+      <div class="top-bar-right">
+        <span class="page-title">奇遇环游</span>
+      </div>
+    </header>
+
+    <main class="if-worlds-overview">
+      <div class="if-worlds-scroll">
+
+        <!-- 大标题 -->
+        <h1 class="if-worlds-title">奇遇环游</h1>
+        <div class="if-worlds-divider">
+          <span class="divider-line"></span>
+          <span class="divider-dot"></span>
+          <span class="divider-line"></span>
+        </div>
+
+        <!-- 世界卡片网格 -->
+        <div class="if-worlds-grid" id="if-worlds-grid">
+          <!-- 世界卡片由 JS 动态生成 -->
+        </div>
+
+        <!-- 新建世界按钮 -->
+        <button class="if-world-create-btn" id="if-world-create-btn">+ 新建世界</button>
+
+      </div>
+    </main>
+
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════════
+       世界观联机互动页面
+       ═══════════════════════════════════════════════════════════ -->
+  <div id="character-page" class="screen">
+
+    <header class="top-bar">
+      <div class="top-bar-left">
+        <button id="btn-back-timeline-overview" class="top-bar-btn">返回总览</button>
+      </div>
+      <div class="top-bar-right">
+        <span class="page-title">世界观联机互动</span>
+      </div>
+    </header>
+
+    <main class="interaction-overview">
+      <h1 class="interaction-title">世界观联机互动</h1>
+      <div class="interaction-divider">
+        <span class="divider-line"></span>
+        <span class="divider-dot"></span>
+        <span class="divider-line"></span>
+      </div>
+      <div class="interaction-cards">
+
+        <div class="interaction-card" data-interaction="lvpaopao">
+          <h2 class="interaction-name">OC绿泡泡</h2>
+          <p class="interaction-tag">连结与交流</p>
+          <div class="interaction-preview" data-field="interactionLvpaopaoPreview"
+               contenteditable="true"
+               data-placeholder="点击编辑简介……">在泡泡中相遇，分享彼此的世界。</div>
+        </div>
+
+        <div class="interaction-card" data-interaction="questionnaire">
+          <h2 class="interaction-name">世界观问卷互动</h2>
+          <p class="interaction-tag">探索与回答</p>
+          <div class="interaction-preview" data-field="interactionQuestionnairePreview"
+               contenteditable="true"
+               data-placeholder="点击编辑简介……">用问题丈量世界的边界，用回答填充它的轮廓。</div>
+        </div>
+
+        <div class="interaction-card" data-interaction="plan">
+          <h2 class="interaction-name">OC企划设计</h2>
+          <p class="interaction-tag">构想与创造</p>
+          <div class="interaction-preview" data-field="interactionPlanPreview"
+               contenteditable="true"
+               data-placeholder="点击编辑简介……">把灵感蓝图落地，让角色与世界共生长。</div>
+        </div>
+
+      </div>
+    </main>
+
+  </div>
+
+
+
+  <!-- ═══════════════════════════════════════════════════════════
+       联机互动详情编辑页面（问卷 / 企划共用）
+       ═══════════════════════════════════════════════════════════ -->
+  <div id="interaction-detail-page" class="screen">
+
+    <header class="top-bar">
+      <div class="top-bar-left">
+        <button id="btn-back-interaction" class="top-bar-btn">返回互动</button>
+      </div>
+      <div class="top-bar-right">
+        <span class="page-title">互动编辑</span>
+      </div>
+    </header>
+
+    <main class="interaction-detail">
+      <div class="interaction-detail-scroll">
+        <h1 class="interaction-detail-title" id="interaction-detail-title" contenteditable="true" data-field="interactionDetailTitle">互动详情</h1>
+        <div class="interaction-detail-divider">
+          <span class="divider-line"></span>
+          <span class="divider-dot"></span>
+          <span class="divider-line"></span>
+        </div>
+        <div class="interaction-detail-content" id="interaction-detail-content" contenteditable="true" data-field="interactionDetailContent"
+             data-placeholder="在此编辑这个互动项目的详细内容……">在此编辑这个互动项目的详细内容……</div>
+      </div>
+    </main>
+
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════════
+       OC绿泡泡 · 微信风格社交界面
+       ═══════════════════════════════════════════════════════════ -->
+  <div id="lpp-page" class="screen">
+
+    <header class="top-bar">
+      <div class="top-bar-left">
+        <button id="btn-back-lpp" class="top-bar-btn">返回互动</button>
+      </div>
+      <div class="top-bar-right">
+        <span class="page-title">OC绿泡泡</span>
+      </div>
+    </header>
+
+    <div class="lpp-app">
+      <!-- 左侧导航栏 -->
+      <nav class="lpp-nav">
+        <div class="lpp-nav-tabs">
+          <button class="lpp-nav-tab active" data-lpp-tab="messages" title="消息">
+            <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+            <span class="lpp-nav-label">消息</span>
+          </button>
+          <button class="lpp-nav-tab" data-lpp-tab="contacts" title="通讯录">
+            <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            <span class="lpp-nav-label">通讯录</span>
+          </button>
+          <button class="lpp-nav-tab" data-lpp-tab="moments" title="朋友圈">
+            <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>
+            <span class="lpp-nav-label">朋友圈</span>
+          </button>
+          <button class="lpp-nav-tab" data-lpp-tab="forum" title="论坛">
+            <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            <span class="lpp-nav-label">论坛</span>
+          </button>
+          <button class="lpp-nav-tab" data-lpp-tab="weibo" title="微博">
+            <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12c-1.5-2-4-3-6.5-2.5.5-1.5-.5-3-2-3.5-2-.5-4 .5-5 2.5-.5 1-.5 2 0 3-2 1-3.5 3-3.5 5.5 0 3.5 3.5 6 8 6s8-2.5 8-6c0-2-1-4-1-5z"/><circle cx="9" cy="14" r="1"/><circle cx="14" cy="15" r="1"/></svg>
+            <span class="lpp-nav-label">微博</span>
+          </button>
+        </div>
+      </nav>
+
+      <!-- 中间列表栏 -->
+      <div class="lpp-sidebar">
+        <!-- 消息列表 -->
+        <div class="lpp-list-panel active" id="lpp-list-messages">
+          <div class="lpp-sidebar-header">
+            <h3>消息</h3>
+          </div>
+          <div class="lpp-list-body" id="lpp-chat-list">
+            <!-- 聊天列表由JS动态生成 -->
+          </div>
+        </div>
+
+        <!-- 通讯录列表 -->
+        <div class="lpp-list-panel" id="lpp-list-contacts">
+          <div class="lpp-sidebar-header">
+            <h3>通讯录</h3>
+            <div class="lpp-header-btns">
+              <button class="lpp-add-btn lpp-group-chat-btn" id="lpp-create-group-btn" title="建立群聊">群</button>
+              <button class="lpp-add-btn" id="lpp-add-contact-btn" title="添加好友">+</button>
+            </div>
+          </div>
+          <div class="lpp-list-body" id="lpp-contact-list">
+            <!-- 好友列表由JS动态生成 -->
+          </div>
+        </div>
+
+        <!-- 朋友圈列表 -->
+        <div class="lpp-list-panel" id="lpp-list-moments">
+          <div class="lpp-sidebar-header">
+            <h3>朋友圈</h3>
+            <button class="lpp-add-btn" id="lpp-post-moment-btn" title="发动态">+</button>
+          </div>
+          <div class="lpp-list-body" id="lpp-moment-list">
+            <!-- 朋友圈列表由JS动态生成 -->
+          </div>
+        </div>
+
+        <!-- 论坛列表 -->
+        <div class="lpp-list-panel" id="lpp-list-forum">
+          <div class="lpp-sidebar-header">
+            <h3>论坛</h3>
+            <div class="lpp-header-btns">
+              <button class="lpp-add-btn lpp-account-btn" id="lpp-forum-account-btn" title="新建账号">+号</button>
+              <button class="lpp-add-btn" id="lpp-post-forum-btn" title="发帖">+</button>
+            </div>
+          </div>
+          <div class="lpp-list-body" id="lpp-forum-list">
+            <!-- 论坛帖子列表由JS动态生成 -->
+          </div>
+        </div>
+
+        <!-- 微博列表 -->
+        <div class="lpp-list-panel" id="lpp-list-weibo">
+          <div class="lpp-sidebar-header">
+            <h3>微博</h3>
+            <div class="lpp-header-btns">
+              <button class="lpp-add-btn lpp-account-btn" id="lpp-weibo-account-btn" title="新建账号">+号</button>
+              <button class="lpp-add-btn" id="lpp-post-weibo-btn" title="发微博">+</button>
+            </div>
+          </div>
+          <div class="lpp-list-body" id="lpp-weibo-list">
+            <!-- 微博列表由JS动态生成 -->
+          </div>
+        </div>
+      </div>
+
+      <!-- 右侧主内容区 -->
+      <div class="lpp-main" id="lpp-main-area">
+        <!-- 默认空状态 -->
+        <div class="lpp-empty" id="lpp-empty-state">
+          <div class="lpp-empty-icon">🦋</div>
+          <p>选择一个对话或功能开始</p>
+        </div>
+
+        <!-- 聊天对话区 -->
+        <div class="lpp-chat-area" id="lpp-chat-area" style="display:none;">
+          <div class="lpp-chat-header">
+            <span class="lpp-chat-name" id="lpp-chat-name">对话</span>
+          </div>
+          <div class="lpp-chat-body" id="lpp-chat-body">
+            <!-- 消息气泡由JS动态生成 -->
+          </div>
+          <div class="lpp-sender-toggle" id="lpp-sender-toggle" style="display:none;">
+            <!-- 双人切换按钮由JS动态生成 -->
+          </div>
+          <div class="lpp-chat-input-bar">
+            <input type="file" id="lpp-chat-image-input" accept="image/*" style="display:none;">
+            <button class="lpp-img-btn" id="lpp-chat-img-btn" title="发送图片"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></button>
+            <textarea class="lpp-chat-input" id="lpp-chat-input" placeholder="输入消息..." rows="1"></textarea>
+            <button class="lpp-send-btn" id="lpp-send-btn">发送</button>
+          </div>
+          <div class="lpp-chat-img-preview" id="lpp-chat-img-preview" style="display:none;"></div>
+        </div>
+
+        <!-- 添加好友弹窗 -->
+        <div class="lpp-modal" id="lpp-add-contact-modal" style="display:none;">
+          <div class="lpp-modal-box">
+            <div class="lpp-modal-header">
+              <h3>选择角色加为好友</h3>
+              <button class="lpp-modal-close" id="lpp-close-add-contact">&times;</button>
+            </div>
+            <div class="lpp-modal-body" id="lpp-contact-picker">
+              <!-- 可选角色列表由JS动态生成 -->
+            </div>
+          </div>
+        </div>
+
+        <!-- 发朋友圈弹窗 -->
+        <div class="lpp-modal" id="lpp-post-moment-modal" style="display:none;">
+          <div class="lpp-modal-box">
+            <div class="lpp-modal-header">
+              <h3>发布动态</h3>
+              <button class="lpp-modal-close" id="lpp-close-moment">&times;</button>
+            </div>
+            <div class="lpp-modal-body">
+              <div class="lpp-form-group">
+                <label>以谁的身份发布</label>
+                <div class="lpp-author-row">
+                  <select class="lpp-form-select" id="lpp-moment-author"></select>
+                  <button class="lpp-new-account-link" id="lpp-moment-new-account-link">新建账号</button>
+                </div>
+              </div>
+              <div class="lpp-form-group">
+                <label>内容</label>
+                <textarea class="lpp-form-textarea" id="lpp-moment-text" placeholder="分享一些什么……" rows="4"></textarea>
+              </div>
+              <div class="lpp-img-upload-row">
+                <input type="file" id="lpp-moment-image-input" accept="image/*" style="display:none;">
+                <button type="button" class="lpp-img-upload-btn" id="lpp-moment-img-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg> 选择图片</button>
+                <div class="lpp-img-preview" id="lpp-moment-img-preview"></div>
+              </div>
+              <button class="lpp-form-submit" id="lpp-moment-submit">发布</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 发帖弹窗 -->
+        <div class="lpp-modal" id="lpp-post-forum-modal" style="display:none;">
+          <div class="lpp-modal-box">
+            <div class="lpp-modal-header">
+              <h3>发布帖子</h3>
+              <button class="lpp-modal-close" id="lpp-close-forum">&times;</button>
+            </div>
+            <div class="lpp-modal-body">
+              <div class="lpp-form-group">
+                <label>以谁的身份发布</label>
+                <div class="lpp-author-row">
+                  <select class="lpp-form-select" id="lpp-forum-author"></select>
+                  <button class="lpp-new-account-link" id="lpp-forum-new-account-link">新建账号</button>
+                  <button class="lpp-del-account-link" id="lpp-forum-del-account">删除账号</button>
+                </div>
+              </div>
+              <div class="lpp-form-group">
+                <label>标题</label>
+                <input class="lpp-form-input" id="lpp-forum-title" placeholder="帖子标题……" />
+              </div>
+              <div class="lpp-form-group">
+                <label>内容</label>
+                <textarea class="lpp-form-textarea" id="lpp-forum-text" placeholder="帖子内容……" rows="6"></textarea>
+              </div>
+              <div class="lpp-form-group">
+                <label>图片（可选）</label>
+                <div class="lpp-img-upload-row">
+                  <input type="file" id="lpp-forum-image-input" accept="image/*" style="display:none;">
+                  <button type="button" class="lpp-img-upload-btn" id="lpp-forum-img-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg> 选择图片</button>
+                  <div class="lpp-img-preview" id="lpp-forum-img-preview"></div>
+                </div>
+              </div>
+              <button class="lpp-form-submit" id="lpp-forum-submit">发布</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 朋友圈详情 -->
+        <div class="lpp-moment-detail" id="lpp-moment-detail" style="display:none;">
+          <!-- 由JS动态生成 -->
+        </div>
+
+        <!-- 论坛帖子详情 -->
+        <div class="lpp-forum-detail" id="lpp-forum-detail" style="display:none;">
+          <!-- 由JS动态生成 -->
+        </div>
+
+        <!-- 论坛转发弹窗 -->
+        <div class="lpp-modal" id="lpp-repost-forum-modal" style="display:none;">
+          <div class="lpp-modal-box">
+            <div class="lpp-modal-header">
+              <h3>转发帖子</h3>
+              <button class="lpp-modal-close" id="lpp-close-repost-forum">&times;</button>
+            </div>
+            <div class="lpp-modal-body">
+              <div class="lpp-form-group">
+                <label>以谁的身份转发</label>
+                <div class="lpp-author-row">
+                  <select class="lpp-form-select" id="lpp-repost-forum-author"></select>
+                  <button class="lpp-new-account-link" id="lpp-repost-forum-new-account">新建账号</button>
+                </div>
+              </div>
+              <div class="lpp-form-group">
+                <label>附言（可留空）</label>
+                <textarea class="lpp-form-textarea" id="lpp-repost-forum-text" placeholder="说点什么..." rows="3"></textarea>
+              </div>
+              <div class="lpp-form-group">
+                <div class="lpp-repost-preview" id="lpp-repost-forum-preview" style="font-size:13px;color:var(--text-muted);border-left:3px solid var(--border-purple);padding:8px 12px;background:rgba(160,140,200,0.06);border-radius:0 6px 6px 0;"></div>
+              </div>
+              <button class="lpp-form-submit" id="lpp-repost-forum-submit">转发</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 发微博弹窗 -->
+        <div class="lpp-modal" id="lpp-post-weibo-modal" style="display:none;">
+          <div class="lpp-modal-box">
+            <div class="lpp-modal-header">
+              <h3>发布微博</h3>
+              <button class="lpp-modal-close" id="lpp-close-weibo">&times;</button>
+            </div>
+            <div class="lpp-modal-body">
+              <div class="lpp-form-group">
+                <label>以谁的身份发布</label>
+                <div class="lpp-author-row">
+                  <select class="lpp-form-select" id="lpp-weibo-author"></select>
+                  <button class="lpp-new-account-link" id="lpp-weibo-new-account-link">新建账号</button>
+                  <button class="lpp-del-account-link" id="lpp-weibo-del-account">删除账号</button>
+                </div>
+              </div>
+              <div class="lpp-form-group">
+                <label>内容</label>
+                <textarea class="lpp-form-textarea" id="lpp-weibo-text" placeholder="有什么新鲜事想分享？……" rows="4"></textarea>
+              </div>
+              <div class="lpp-form-group">
+                <label>图片（可选）</label>
+                <div class="lpp-img-upload-row">
+                  <input type="file" id="lpp-weibo-image-input" accept="image/*" style="display:none;">
+                  <button type="button" class="lpp-img-upload-btn" id="lpp-weibo-img-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg> 选择图片</button>
+                  <div class="lpp-img-preview" id="lpp-weibo-img-preview"></div>
+                </div>
+              </div>
+              <button class="lpp-form-submit" id="lpp-weibo-submit">发布</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 微博详情 -->
+        <div class="lpp-weibo-detail" id="lpp-weibo-detail" style="display:none;">
+          <!-- 由JS动态生成 -->
+        </div>
+
+        <!-- 微博转发弹窗 -->
+        <div class="lpp-modal" id="lpp-repost-weibo-modal" style="display:none;">
+          <div class="lpp-modal-box">
+            <div class="lpp-modal-header">
+              <h3>转发微博</h3>
+              <button class="lpp-modal-close" id="lpp-close-repost-weibo">&times;</button>
+            </div>
+            <div class="lpp-modal-body">
+              <div class="lpp-form-group">
+                <label>以谁的身份转发</label>
+                <div class="lpp-author-row">
+                  <select class="lpp-form-select" id="lpp-repost-weibo-author"></select>
+                  <button class="lpp-new-account-link" id="lpp-repost-weibo-new-account">新建账号</button>
+                </div>
+              </div>
+              <div class="lpp-form-group">
+                <label>转发附言（可留空）</label>
+                <textarea class="lpp-form-textarea" id="lpp-repost-weibo-text" placeholder="说点什么..." rows="3"></textarea>
+              </div>
+              <div class="lpp-form-group">
+                <div class="lpp-repost-preview" id="lpp-repost-weibo-preview" style="font-size:13px;color:var(--text-muted);border-left:3px solid var(--border-purple);padding:8px 12px;background:rgba(160,140,200,0.06);border-radius:0 6px 6px 0;"></div>
+              </div>
+              <button class="lpp-form-submit" id="lpp-repost-weibo-submit">转发</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 新建账号弹窗 -->
+        <div class="lpp-modal" id="lpp-create-account-modal" style="display:none;">
+          <div class="lpp-modal-box">
+            <div class="lpp-modal-header">
+              <h3>新建账号</h3>
+              <button class="lpp-modal-close" id="lpp-close-account">&times;</button>
+            </div>
+            <div class="lpp-modal-body">
+              <div class="lpp-form-group">
+                <label>账号昵称</label>
+                <input class="lpp-form-input" id="lpp-account-name" placeholder="给这个账号起个名字……" />
+              </div>
+              <div class="lpp-form-group">
+                <label>头像颜色</label>
+                <div class="lpp-color-picker" id="lpp-account-color-picker">
+                  <button type="button" class="lpp-color-dot active" data-color="#8b5cf6" style="background:#8b5cf6"></button>
+                  <button type="button" class="lpp-color-dot" data-color="#ec4899" style="background:#ec4899"></button>
+                  <button type="button" class="lpp-color-dot" data-color="#f59e0b" style="background:#f59e0b"></button>
+                  <button type="button" class="lpp-color-dot" data-color="#10b981" style="background:#10b981"></button>
+                  <button type="button" class="lpp-color-dot" data-color="#3b82f6" style="background:#3b82f6"></button>
+                  <button type="button" class="lpp-color-dot" data-color="#ef4444" style="background:#ef4444"></button>
+                  <button type="button" class="lpp-color-dot" data-color="#6b7280" style="background:#6b7280"></button>
+                </div>
+              </div>
+              <div class="lpp-form-group">
+                <label>简介（可选）</label>
+                <input class="lpp-form-input" id="lpp-account-bio" placeholder="一句话简介……" />
+              </div>
+              <button class="lpp-form-submit" id="lpp-account-submit">创建账号</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 建立群聊弹窗 -->
+        <div class="lpp-modal" id="lpp-create-group-modal" style="display:none;">
+          <div class="lpp-modal-box">
+            <div class="lpp-modal-header">
+              <h3>建立群聊</h3>
+              <button class="lpp-modal-close" id="lpp-close-group">&times;</button>
+            </div>
+            <div class="lpp-modal-body">
+              <div class="lpp-form-group">
+                <label>群聊名称</label>
+                <input class="lpp-form-input" id="lpp-group-name" placeholder="给群聊起个名字……" />
+              </div>
+              <div class="lpp-form-group">
+                <label>选择群成员</label>
+                <div class="lpp-group-member-picker" id="lpp-group-member-picker">
+                  <!-- 可选好友列表由JS动态生成 -->
+                </div>
+              </div>
+              <button class="lpp-form-submit" id="lpp-group-submit">创建群聊</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════════
+       时间线详情页（角色展示区 + 凤凰羽毛按钮）
+       ═══════════════════════════════════════════════════════════ -->
+  <div id="timeline-detail-page" class="screen">
+
+    <header class="top-bar">
+      <div class="top-bar-left">
+        <button id="btn-back-timeline" class="top-bar-btn">返回总览</button>
+      </div>
+      <div class="top-bar-right">
+        <span class="page-title" id="detail-page-title">时间线编辑</span>
+      </div>
+    </header>
+
+    <main class="timeline-detail">
+      <div class="detail-scroll">
+
+        <!-- 大标题 -->
+        <h1 class="detail-title" id="detail-title">源初·蝶凰线</h1>
+        <div class="detail-divider">
+          <span class="divider-line"></span>
+          <span class="divider-dot"></span>
+          <span class="divider-line"></span>
+        </div>
+
+        <!-- 出场角色展示区（最上方） -->
+        <section class="character-showcase" id="character-showcase">
+          <div class="showcase-header">
+            <h2 class="showcase-label">出场角色</h2>
+            <div class="showcase-actions">
+              <button class="add-character-btn-inline" id="add-character-btn">+ 新建角色</button>
+              <button class="delete-character-btn-inline" id="delete-character-btn">删除角色</button>
+            </div>
+          </div>
+          <div class="character-grid" id="detail-character-grid">
+            <!-- 角色图片卡片由 JS 动态生成 -->
+          </div>
+        </section>
+
+        <!-- 分隔 -->
+        <div class="detail-divider showcase-divider">
+          <span class="divider-line"></span>
+          <span class="divider-dot"></span>
+          <span class="divider-line"></span>
+        </div>
+
+        <!-- 凤凰羽毛按钮网格 -->
+        <div class="feather-grid">
+
+          <button class="feather-btn" data-section="brief">
+            <span class="feather-stem"></span>
+            <span class="feather-barb-left"></span>
+            <span class="feather-barb-right"></span>
+            <span class="feather-label">世界线简介</span>
+          </button>
+
+          <button class="feather-btn" data-section="factions">
+            <span class="feather-stem"></span>
+            <span class="feather-barb-left"></span>
+            <span class="feather-barb-right"></span>
+            <span class="feather-label">组织与势力</span>
+          </button>
+
+          <button class="feather-btn" data-section="magic">
+            <span class="feather-stem"></span>
+            <span class="feather-barb-left"></span>
+            <span class="feather-barb-right"></span>
+            <span class="feather-label">魔法 / 力量体系</span>
+          </button>
+
+          <button class="feather-btn" data-section="wiki">
+            <span class="feather-stem"></span>
+            <span class="feather-barb-left"></span>
+            <span class="feather-barb-right"></span>
+            <span class="feather-label">世界百科</span>
+          </button>
+
+          <button class="feather-btn" data-section="novel">
+            <span class="feather-stem"></span>
+            <span class="feather-barb-left"></span>
+            <span class="feather-barb-right"></span>
+            <span class="feather-label">世界小说</span>
+          </button>
+
+        </div>
+
+      </div>
+    </main>
+
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════════
+       板块编辑独立页面（动态填充）
+       ═══════════════════════════════════════════════════════════ -->
+  <div id="section-editor-page" class="screen">
+
+    <header class="top-bar">
+      <div class="top-bar-left">
+        <button id="btn-back-section" class="top-bar-btn">返回时间线</button>
+      </div>
+      <div class="top-bar-right">
+        <span class="page-title" id="section-editor-title">板块编辑</span>
+      </div>
+    </header>
+
+    <main class="section-editor">
+      <div class="section-editor-scroll">
+
+        <!-- 标题 -->
+        <h1 class="section-editor-heading" id="section-heading">出场角色</h1>
+        <div class="section-editor-divider">
+          <span class="divider-line"></span>
+          <span class="divider-dot"></span>
+          <span class="divider-line"></span>
+        </div>
+
+        <!-- 文本编辑模式（通用板块） -->
+        <div class="section-text-editor" id="section-text-editor">
+          <div class="section-editor-content" id="section-editor-content"
+               contenteditable="true"
+               data-placeholder="在此编辑内容……"></div>
+        </div>
+
+        <!-- 世界百科专用编辑器 -->
+        <div class="factions-editor hidden" id="wiki-editor">
+          <div class="factions-layout">
+
+            <!-- 左侧分类树 -->
+            <aside class="factions-sidebar">
+              <button class="factions-add-entry-btn" id="wiki-add-entry-btn">
+                + 创建新词条
+              </button>
+              <div class="factions-tree" id="wiki-tree"></div>
+            </aside>
+
+            <!-- 右侧词条编辑 -->
+            <div class="factions-main">
+              <!-- 顶部分类栏：总分类/子分类上下并列在左，词条名称在右 -->
+              <div class="factions-category-bar">
+                <div class="factions-category-left">
+                  <div class="factions-category-field">
+                    <label>总分类</label>
+                    <div class="factions-category-input"
+                         id="wiki-parent-category"
+                         contenteditable="true"
+                         data-placeholder="选择或输入总分类"></div>
+                  </div>
+                  <div class="factions-category-field">
+                    <label>子分类</label>
+                    <div class="factions-category-input"
+                         id="wiki-sub-category"
+                         contenteditable="true"
+                         data-placeholder="选择或输入子分类"></div>
+                  </div>
+                </div>
+                <div class="factions-category-right">
+                  <div class="factions-category-field">
+                    <label>词条名称</label>
+                    <div class="factions-category-input"
+                         id="wiki-entry-name"
+                         contenteditable="true"
+                         data-placeholder="输入词条名称"></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 词条内容 -->
+              <div class="factions-entry-content"
+                   id="wiki-entry-content"
+                   contenteditable="true"
+                   data-placeholder="在此编辑词条内容……"></div>
+
+            </div>
+
+          </div>
+        </div>
+
+        <!-- 魔法力量体系专用编辑器 -->
+        <div class="factions-editor hidden" id="magic-editor">
+          <div class="factions-layout">
+
+            <!-- 左侧分类树 -->
+            <aside class="factions-sidebar">
+              <button class="factions-add-entry-btn" id="magic-add-entry-btn">
+                + 创建新词条
+              </button>
+              <div class="factions-tree" id="magic-tree"></div>
+            </aside>
+
+            <!-- 右侧词条编辑 -->
+            <div class="factions-main">
+              <!-- 顶部分类栏：总分类/子分类上下并列在左，词条名称在右 -->
+              <div class="factions-category-bar">
+                <div class="factions-category-left">
+                  <div class="factions-category-field">
+                    <label>总分类</label>
+                    <div class="factions-category-input"
+                         id="magic-parent-category"
+                         contenteditable="true"
+                         data-placeholder="选择或输入总分类"></div>
+                  </div>
+                  <div class="factions-category-field">
+                    <label>子分类</label>
+                    <div class="factions-category-input"
+                         id="magic-sub-category"
+                         contenteditable="true"
+                         data-placeholder="选择或输入子分类"></div>
+                  </div>
+                </div>
+                <div class="factions-category-right">
+                  <div class="factions-category-field">
+                    <label>词条名称</label>
+                    <div class="factions-category-input"
+                         id="magic-entry-name"
+                         contenteditable="true"
+                         data-placeholder="输入词条名称"></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 词条内容 -->
+              <div class="factions-entry-content"
+                   id="magic-entry-content"
+                   contenteditable="true"
+                   data-placeholder="在此编辑词条内容……"></div>
+
+            </div>
+
+          </div>
+        </div>
+
+        <!-- 组织与势力专用编辑器 -->
+        <div class="factions-editor hidden" id="factions-editor">
+          <div class="factions-layout">
+
+            <!-- 左侧分类树 -->
+            <aside class="factions-sidebar">
+              <button class="factions-add-entry-btn" id="factions-add-entry-btn">
+                + 创建新词条
+              </button>
+              <div class="factions-tree" id="factions-tree"></div>
+            </aside>
+
+            <!-- 右侧词条编辑 -->
+            <div class="factions-main">
+              <!-- 顶部分类栏：总分类/子分类上下并列在左，词条名称在右 -->
+              <div class="factions-category-bar">
+                <div class="factions-category-left">
+                  <div class="factions-category-field">
+                    <label>总分类</label>
+                    <div class="factions-category-input"
+                         id="factions-parent-category"
+                         contenteditable="true"
+                         data-placeholder="选择或输入总分类"></div>
+                  </div>
+                  <div class="factions-category-field">
+                    <label>子分类</label>
+                    <div class="factions-category-input"
+                         id="factions-sub-category"
+                         contenteditable="true"
+                         data-placeholder="选择或输入子分类"></div>
+                  </div>
+                </div>
+                <div class="factions-category-right">
+                  <div class="factions-category-field">
+                    <label>词条名称</label>
+                    <div class="factions-category-input"
+                         id="factions-entry-name"
+                         contenteditable="true"
+                         data-placeholder="输入词条名称"></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 词条内容 -->
+              <div class="factions-entry-content"
+                   id="factions-entry-content"
+                   contenteditable="true"
+                   data-placeholder="在此编辑词条内容……"></div>
+
+
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </main>
+
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════════
+       世界小说 · 小说列表页（卡片式布局）
+       ═══════════════════════════════════════════════════════════ -->
+  <div id="novel-list-page" class="screen">
+
+    <header class="top-bar">
+      <div class="top-bar-left">
+        <button id="btn-back-novel-list" class="top-bar-btn">返回时间线</button>
+      </div>
+      <div class="top-bar-right">
+        <span class="page-title" id="novel-list-page-title">世界小说</span>
+      </div>
+    </header>
+
+    <main class="novel-subpage">
+      <div class="novel-subpage-scroll">
+        <div class="subpage-intro">为这个世界线撰写小说，点击下方按钮新建一本。</div>
+
+        <!-- 小说卡片网格 -->
+        <div class="novel-grid" id="novel-grid"></div>
+
+        <!-- 新建小说按钮 -->
+        <button class="add-novel-btn" id="add-novel-btn">+ 新建小说</button>
+      </div>
+    </main>
+
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════════
+       世界小说 · 章节列表页（新建/删除章节）
+       ═══════════════════════════════════════════════════════════ -->
+  <div id="novel-chapter-page" class="screen">
+
+    <header class="top-bar">
+      <div class="top-bar-left">
+        <button id="btn-back-novel-chapter" class="top-bar-btn">返回小说列表</button>
+      </div>
+      <div class="top-bar-right">
+        <span class="page-title" id="novel-chapter-page-title">章节列表</span>
+      </div>
+    </header>
+
+    <main class="novel-subpage">
+      <div class="novel-subpage-scroll">
+        <div class="subpage-intro">以章节组织这部小说，点击新建章节开始写作。</div>
+
+        <!-- 小说信息摘要 -->
+        <div class="novel-chapter-header" id="novel-chapter-header">
+          <div class="novel-chapter-cover" id="novel-chapter-cover">
+            <img id="novel-chapter-cover-img" src="" alt="封面" style="display:none;">
+            <span class="novel-chapter-cover-placeholder">无封面</span>
+          </div>
+          <div class="novel-chapter-info">
+            <h2 class="novel-chapter-name" id="novel-chapter-name">未命名小说</h2>
+            <p class="novel-chapter-count" id="novel-chapter-count">共 0 章</p>
+          </div>
+        </div>
+
+        <div class="chapter-edit-divider" style="margin-bottom:28px;">
+          <span class="divider-line"></span>
+          <span class="divider-dot"></span>
+          <span class="divider-line"></span>
+        </div>
+
+        <!-- 章节列表 -->
+        <div class="chapter-list" id="novel-chapter-list"></div>
+
+        <!-- 新建章节按钮 -->
+        <button class="add-chapter-btn" id="add-novel-chapter-btn">+ 新建章节</button>
+      </div>
+    </main>
+
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════════
+       世界小说 · 章节编辑页
+       ═══════════════════════════════════════════════════════════ -->
+  <div id="novel-chapter-edit-page" class="screen">
+
+    <header class="top-bar">
+      <div class="top-bar-left">
+        <button id="btn-back-novel-chapter-edit" class="top-bar-btn">返回章节列表</button>
+      </div>
+      <div class="top-bar-right">
+        <span class="page-title" id="novel-chapter-edit-page-title">章节编辑</span>
+      </div>
+    </header>
+
+    <main class="novel-subpage">
+      <div class="novel-subpage-scroll">
+        <div class="chapter-edit-title-wrap">
+          <div class="chapter-edit-title" id="novel-chapter-edit-title"
+               contenteditable="true" data-placeholder="章节标题"></div>
+        </div>
+        <div class="chapter-edit-divider">
+          <span class="divider-line"></span>
+          <span class="divider-dot"></span>
+          <span class="divider-line"></span>
+        </div>
+        <div class="character-editor-field">
+          <div class="character-editor-desc chapter-edit-body" id="novel-chapter-edit-body"
+               contenteditable="true" data-placeholder="在此写下这一章的内容……"></div>
+        </div>
+      </div>
+    </main>
+
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════════
+       角色详情主页（三个子项入口）
+       ═══════════════════════════════════════════════════════════ -->
+  <div id="character-editor-page" class="screen">
+
+    <header class="top-bar">
+      <div class="top-bar-left">
+        <button id="btn-back-character" class="top-bar-btn">返回时间线</button>
+      </div>
+      <div class="top-bar-right">
+        <span class="page-title" id="character-editor-page-title">角色详情</span>
+      </div>
+    </header>
+
+    <main class="character-home">
+      <div class="character-home-scroll">
+
+        <!-- 角色基础信息摘要 -->
+        <div class="character-home-header">
+          <div class="character-home-avatar" id="character-home-avatar">
+            <span class="avatar-placeholder">点击上传角色图片</span>
+            <img id="character-home-avatar-img" src="" alt="角色图片" style="display:none;">
+            <input type="file" id="character-home-avatar-input" class="character-avatar-input" accept="image/*">
+          </div>
+          <div class="character-home-meta">
+            <div class="character-home-name" id="character-home-name"
+                 contenteditable="true" data-placeholder="角色姓名"></div>
+            <div class="character-home-desc" id="character-home-desc"
+                 contenteditable="true" data-placeholder="角色简介（一句话）"></div>
+          </div>
+        </div>
+
+        <!-- 三个子项入口 -->
+        <div class="character-module-grid">
+          <button class="character-module-card" id="btn-open-gallery">
+            <span class="module-icon" aria-hidden="true">
+              <svg viewBox="0 0 48 48" width="44" height="44">
+                <rect x="6" y="10" width="36" height="28" rx="3" fill="none" stroke="currentColor" stroke-width="2.5"/>
+                <circle cx="18" cy="22" r="4" fill="currentColor" opacity="0.85"/>
+                <path d="M10 38 L20 26 L28 34 L36 24 L42 32 L42 38 Z" fill="currentColor" opacity="0.6"/>
+              </svg>
+            </span>
+            <span class="module-title">角色画廊</span>
+            <span class="module-subtitle">图片与插画</span>
+          </button>
+
+          <button class="character-module-card" id="btn-open-story">
+            <span class="module-icon" aria-hidden="true">
+              <svg viewBox="0 0 48 48" width="44" height="44">
+                <path d="M12 8 C12 8 18 6 24 10 C30 6 36 8 36 8 L36 34 C36 34 30 32 24 36 C18 32 12 34 12 34 Z" fill="none" stroke="currentColor" stroke-width="2.5"/>
+                <path d="M24 10 L24 36" stroke="currentColor" stroke-width="2"/>
+              </svg>
+            </span>
+            <span class="module-title">角色故事</span>
+            <span class="module-subtitle">经历与叙事</span>
+          </button>
+
+          <button class="character-module-card" id="btn-open-profile">
+            <span class="module-icon" aria-hidden="true">
+              <svg viewBox="0 0 48 48" width="44" height="44">
+                <rect x="8" y="6" width="32" height="38" rx="3" fill="none" stroke="currentColor" stroke-width="2.5"/>
+                <line x1="14" y1="14" x2="34" y2="14" stroke="currentColor" stroke-width="2"/>
+                <line x1="14" y1="22" x2="34" y2="22" stroke="currentColor" stroke-width="2"/>
+                <line x1="14" y1="30" x2="28" y2="30" stroke="currentColor" stroke-width="2"/>
+                <circle cx="36" cy="30" r="2" fill="currentColor"/>
+              </svg>
+            </span>
+            <span class="module-title">角色档案</span>
+            <span class="module-subtitle">设定与资料</span>
+          </button>
+
+          <button class="character-module-card" id="btn-open-weapons">
+            <span class="module-icon" aria-hidden="true">
+              <svg viewBox="0 0 48 48" width="44" height="44">
+                <path d="M12 36 L36 12" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+                <path d="M32 8 L40 16" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+                <path d="M8 32 L16 40" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+                <circle cx="24" cy="24" r="4" fill="currentColor" opacity="0.5"/>
+              </svg>
+            </span>
+            <span class="module-title">角色武器</span>
+            <span class="module-subtitle">武器与装备</span>
+          </button>
+
+          <button class="character-module-card" id="btn-open-skills">
+            <span class="module-icon" aria-hidden="true">
+              <svg viewBox="0 0 48 48" width="44" height="44">
+                <path d="M24 6 L28 18 L40 18 L30 26 L34 38 L24 30 L14 38 L18 26 L8 18 L20 18 Z" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/>
+              </svg>
+            </span>
+            <span class="module-title">角色技能</span>
+            <span class="module-subtitle">能力与招式</span>
+          </button>
+        </div>
+
+      </div>
+    </main>
+
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════════
+       角色画廊编辑页
+       ═══════════════════════════════════════════════════════════ -->
+  <div id="character-gallery-page" class="screen">
+
+    <header class="top-bar">
+      <div class="top-bar-left">
+        <button id="btn-back-gallery" class="top-bar-btn">返回角色详情</button>
+      </div>
+      <div class="top-bar-right">
+        <span class="page-title" id="character-gallery-page-title">角色画廊</span>
+      </div>
+    </header>
+
+    <main class="character-subpage">
+      <div class="character-subpage-scroll">
+        <div class="subpage-intro">按类型分区管理角色的图片作品，每张图可标注名称与价格。</div>
+
+        <!-- 区域标签行 -->
+        <div class="gallery-section-bar" id="gallery-section-bar">
+          <div class="gallery-section-tabs" id="gallery-section-tabs"></div>
+          <button class="gallery-add-section-btn" id="gallery-add-section-btn" title="添加分区">+</button>
+        </div>
+
+        <!-- 当前区域图片列表 -->
+        <div class="gallery-section-content" id="gallery-section-content">
+          <div class="gallery-section-empty" id="gallery-section-empty">该分区暂无图片，点击下方按钮添加。</div>
+          <div class="gallery-list" id="gallery-list"></div>
+          <button class="add-gallery-item-btn" id="add-gallery-item-btn">+ 添加图片到当前分区</button>
+        </div>
+      </div>
+    </main>
+
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════════
+       画廊图片故事编辑页（由此入画）
+       ═══════════════════════════════════════════════════════════ -->
+  <div id="character-gallery-item-story-page" class="screen">
+
+    <header class="top-bar">
+      <div class="top-bar-left">
+        <button id="btn-back-gallery-item-story" class="top-bar-btn">返回画廊</button>
+      </div>
+      <div class="top-bar-right">
+        <span class="page-title" id="character-gallery-item-story-page-title">入画</span>
+      </div>
+    </header>
+
+    <main class="character-subpage">
+      <div class="gallery-item-story-scroll">
+        <div class="gallery-item-story-layout">
+          <div class="gallery-item-story-image">
+            <img id="gallery-item-story-img" src="" alt="画作">
+          </div>
+          <div class="gallery-item-story-panel">
+            <h2 class="gallery-item-story-name" id="gallery-item-story-name">未命名图片</h2>
+            <div class="gallery-item-story-divider">
+              <span class="divider-line"></span>
+              <span class="divider-dot"></span>
+              <span class="divider-line"></span>
+            </div>
+            <div class="gallery-item-story-body character-editor-desc"
+                 id="gallery-item-story-body"
+                 contenteditable="true"
+                 data-placeholder="在此写下这幅画背后的故事……"></div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════════
+       角色故事 · 章节列表页
+       ═══════════════════════════════════════════════════════════ -->
+  <div id="character-story-page" class="screen">
+
+    <header class="top-bar">
+      <div class="top-bar-left">
+        <button id="btn-back-story" class="top-bar-btn">返回角色详情</button>
+      </div>
+      <div class="top-bar-right">
+        <span class="page-title" id="character-story-page-title">角色故事</span>
+      </div>
+    </header>
+
+    <main class="character-subpage">
+      <div class="character-subpage-scroll">
+        <div class="subpage-intro">以章节组织角色的故事，点击新建章节开始写作。</div>
+
+        <!-- 章节列表 -->
+        <div class="chapter-list" id="chapter-list"></div>
+
+        <!-- 新建章节按钮 -->
+        <button class="add-chapter-btn" id="add-chapter-btn">+ 新建章节</button>
+      </div>
+    </main>
+
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════════
+       角色故事 · 章节编辑页
+       ═══════════════════════════════════════════════════════════ -->
+  <div id="character-chapter-edit-page" class="screen">
+
+    <header class="top-bar">
+      <div class="top-bar-left">
+        <button id="btn-back-chapter" class="top-bar-btn">返回章节列表</button>
+      </div>
+      <div class="top-bar-right">
+        <span class="page-title" id="character-chapter-edit-page-title">章节编辑</span>
+      </div>
+    </header>
+
+    <main class="character-subpage">
+      <div class="character-subpage-scroll">
+        <div class="chapter-edit-title-wrap">
+          <div class="chapter-edit-title" id="chapter-edit-title"
+               contenteditable="true" data-placeholder="章节标题"></div>
+        </div>
+        <div class="chapter-edit-divider">
+          <span class="divider-line"></span>
+          <span class="divider-dot"></span>
+          <span class="divider-line"></span>
+        </div>
+        <div class="character-editor-field">
+          <div class="character-editor-desc chapter-edit-body" id="chapter-edit-body"
+               contenteditable="true" data-placeholder="在此写下这一章的故事……"></div>
+        </div>
+      </div>
+    </main>
+
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════════
+       角色档案编辑页
+       ═══════════════════════════════════════════════════════════ -->
+  <div id="character-profile-page" class="screen">
+
+    <header class="top-bar">
+      <div class="top-bar-left">
+        <button id="btn-back-profile" class="top-bar-btn">返回角色详情</button>
+      </div>
+      <div class="top-bar-right">
+        <span class="page-title" id="character-profile-page-title">角色档案</span>
+      </div>
+    </header>
+
+    <main class="character-subpage">
+      <div class="character-subpage-scroll">
+        <div class="subpage-intro">填写角色的基础设定与能力属性。</div>
+
+        <div class="profile-layout">
+          <!-- 左栏：六维能力图 -->
+          <div class="profile-abilities-col">
+            <div class="abilities-header">
+              <span class="abilities-title">能力属性</span>
+            </div>
+
+            <!-- 雷达图 SVG -->
+            <div class="radar-chart-wrap" id="radar-chart-wrap">
+              <svg id="radar-chart-svg" viewBox="0 0 200 200" width="200" height="200"
+                   xmlns="http://www.w3.org/2000/svg">
+              </svg>
+            </div>
+
+            <!-- 能力列表编辑区 -->
+            <div class="abilities-list" id="abilities-list"></div>
+
+            <!-- 新增能力按钮 -->
+            <button class="add-ability-btn" id="add-ability-btn">+ 新增属性</button>
+          </div>
+
+          <!-- 右栏：基础设定 -->
+          <div class="profile-info-col">
+            <div class="profile-grid" id="profile-grid">
+              <div class="profile-field">
+                <label class="character-editor-label">性别</label>
+                <div class="character-editor-name profile-input" id="profile-gender" contenteditable="true" data-placeholder="例如：女"></div>
+              </div>
+              <div class="profile-field">
+                <label class="character-editor-label">年龄</label>
+                <div class="character-editor-name profile-input" id="profile-age" contenteditable="true" data-placeholder="例如：19岁"></div>
+              </div>
+              <div class="profile-field">
+                <label class="character-editor-label">种族 / 身份</label>
+                <div class="character-editor-name profile-input" id="profile-race" contenteditable="true" data-placeholder="例如：人类 / 半神"></div>
+              </div>
+              <div class="profile-field">
+                <label class="character-editor-label">身高</label>
+                <div class="character-editor-name profile-input" id="profile-height" contenteditable="true" data-placeholder="例如：165cm"></div>
+              </div>
+              <div class="profile-field profile-field-wide">
+                <label class="character-editor-label">职业 / 阵营</label>
+                <div class="character-editor-name profile-input" id="profile-occupation" contenteditable="true" data-placeholder="例如：学生 / 夜巡者"></div>
+              </div>
+              <div class="profile-field profile-field-wide">
+                <label class="character-editor-label">性格特点</label>
+                <div class="character-editor-desc profile-text" id="profile-personality" contenteditable="true" data-placeholder="例如：外热内冷，嘴硬心软……"></div>
+              </div>
+              <div class="profile-field profile-field-wide">
+                <label class="character-editor-label">背景设定</label>
+                <div class="character-editor-desc profile-text" id="profile-background" contenteditable="true" data-placeholder="例如：出身、家庭、重要经历……"></div>
+              </div>
+              <div class="profile-field profile-field-wide">
+                <label class="character-editor-label">其他备注</label>
+                <div class="character-editor-desc profile-text" id="profile-notes" contenteditable="true" data-placeholder="任何想补充的设定……"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════════
+       角色武器 · 武器列表页
+       ═══════════════════════════════════════════════════════════ -->
+  <div id="character-weapons-page" class="screen">
+
+    <header class="top-bar">
+      <div class="top-bar-left">
+        <button id="btn-back-weapons" class="top-bar-btn">返回角色详情</button>
+      </div>
+      <div class="top-bar-right">
+        <span class="page-title" id="character-weapons-page-title">角色武器</span>
+      </div>
+    </header>
+
+    <main class="character-subpage">
+      <div class="character-subpage-scroll">
+        <div class="subpage-intro">为角色创建专属武器，每件武器可记录外观与多条武器技能。</div>
+
+        <!-- 武器列表 -->
+        <div class="weapon-list" id="weapon-list"></div>
+
+        <!-- 新建武器按钮 -->
+        <button class="add-weapon-btn" id="add-weapon-btn">+ 新建武器</button>
+      </div>
+    </main>
+
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════════
+       角色武器 · 武器详情页
+       ═══════════════════════════════════════════════════════════ -->
+  <div id="character-weapon-detail-page" class="screen">
+
+    <header class="top-bar">
+      <div class="top-bar-left">
+        <button id="btn-back-weapon-detail" class="top-bar-btn">返回武器列表</button>
+      </div>
+      <div class="top-bar-right">
+        <span class="page-title" id="character-weapon-detail-page-title">武器详情</span>
+      </div>
+    </header>
+
+    <main class="character-subpage">
+      <div class="character-subpage-scroll">
+        <!-- 武器外观图 -->
+        <div class="weapon-detail-image-wrap" id="weapon-detail-image-wrap">
+          <span class="weapon-image-placeholder">点击上传武器外观</span>
+          <img id="weapon-detail-image" src="" alt="武器外观" style="display:none;">
+          <input type="file" id="weapon-detail-image-input" class="weapon-image-input" accept="image/*">
+        </div>
+
+        <!-- 武器名字 -->
+        <div class="weapon-detail-name" id="weapon-detail-name"
+             contenteditable="true" data-placeholder="武器名称"></div>
+
+        <div class="weapon-detail-divider">
+          <span class="divider-line"></span>
+          <span class="divider-dot"></span>
+          <span class="divider-line"></span>
+        </div>
+
+        <!-- 武器技能列表 -->
+        <div class="weapon-skills-section">
+          <div class="weapon-skills-header">武器技能</div>
+          <div class="weapon-skills-list" id="weapon-skills-list"></div>
+          <button class="add-weapon-skill-btn" id="add-weapon-skill-btn">+ 新增技能</button>
+        </div>
+      </div>
+    </main>
+
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════════
+       角色技能 · 技能列表页
+       ═══════════════════════════════════════════════════════════ -->
+  <div id="character-skills-page" class="screen">
+
+    <header class="top-bar">
+      <div class="top-bar-left">
+        <button id="btn-back-skills" class="top-bar-btn">返回角色详情</button>
+      </div>
+      <div class="top-bar-right">
+        <span class="page-title" id="character-skills-page-title">角色技能</span>
+      </div>
+    </header>
+
+    <main class="character-subpage">
+      <div class="character-subpage-scroll">
+        <div class="subpage-intro">记录角色的各项能力与招式，点击卡片即可编辑详情。</div>
+
+        <!-- 技能列表 -->
+        <div class="skill-list" id="skill-list"></div>
+
+        <!-- 新建技能按钮 -->
+        <button class="add-skill-btn" id="add-skill-btn">+ 新建技能</button>
+      </div>
+    </main>
+
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════════
+       角色技能 · 技能编辑页
+       ═══════════════════════════════════════════════════════════ -->
+  <div id="character-skill-edit-page" class="screen">
+
+    <header class="top-bar">
+      <div class="top-bar-left">
+        <button id="btn-back-skill-edit" class="top-bar-btn">返回技能列表</button>
+      </div>
+      <div class="top-bar-right">
+        <span class="page-title" id="character-skill-edit-page-title">技能编辑</span>
+      </div>
+    </header>
+
+    <main class="character-subpage">
+      <div class="character-subpage-scroll">
+        <div class="skill-edit-title-wrap">
+          <div class="skill-edit-title" id="skill-edit-title"
+               contenteditable="true" data-placeholder="技能名称"></div>
+        </div>
+        <div class="skill-edit-divider">
+          <span class="divider-line"></span>
+          <span class="divider-dot"></span>
+          <span class="divider-line"></span>
+        </div>
+        <div class="character-editor-field">
+          <div class="character-editor-desc skill-edit-body" id="skill-edit-body"
+               contenteditable="true" data-placeholder="在此写下技能的详细描述……"></div>
+        </div>
+      </div>
+    </main>
+
+  </div>
+
+
+  <!-- ═══════════════════════════════════════════════════════════
+       Toast 提示
+       ═══════════════════════════════════════════════════════════ -->
+  <div id="toast" class="toast"></div>
+
+
+  <!-- ═══════════════════════════════════════════════════════════
+       脚本
+       ═══════════════════════════════════════════════════════════ -->
+  <script src="js/protection.js?v=20260804k"></script>
+  <script src="js/imagestore.js?v=20260804k"></script>
+  <script src="js/storage.js?v=20260804k"></script>
+  <script src="js/intro.js?v=20260804k"></script>
+  <script src="js/world.js?v=20260804k"></script>
+  <!-- 图片灯箱 -->
+  <div id="lpp-image-lightbox" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:99999;align-items:center;justify-content:center;cursor:zoom-out;">
+    <img id="lpp-lightbox-img" src="" style="max-width:90%;max-height:90%;border-radius:8px;object-fit:contain;box-shadow:0 4px 30px rgba(0,0,0,0.5);" />
+  </div>
+
+  <script src="js/share.js?v=20260804k"></script>
+  <script src="js/edit.js?v=20260804k"></script>
+  <script src="js/main.js?v=20260804k"></script>
+
+</body>
+</html>
