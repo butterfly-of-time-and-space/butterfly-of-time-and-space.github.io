@@ -192,6 +192,8 @@
 
   // ── 保存到 localStorage（主存档）────────────────────────
   function saveToLocal() {
+    // 只读模式下跳过自动保存，避免把 base64 图片转成 idb: 引用
+    if (window.isReadOnlyMode && window.isReadOnlyMode()) return true;
     var archive = {
       version: '2.0',
       savedAt: new Date().toISOString(),
@@ -373,6 +375,8 @@
 
   // ── 自动保存（30 秒定时）──────────────────────────────────
   function startAutoSave() {
+    // 只读模式下不启动自动保存
+    if (window.isReadOnlyMode && window.isReadOnlyMode()) return;
     if (autoSaveTimer) clearInterval(autoSaveTimer);
     autoSaveTimer = setInterval(function () {
       // 只在有编辑内容时保存
