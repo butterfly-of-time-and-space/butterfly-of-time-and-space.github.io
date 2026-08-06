@@ -1,7 +1,9 @@
 /* ═══════════════════════════════════════════════════════════════
    只读模式模块 · readonly-mode.js
    ═══════════════════════════════════════════════════════════════
-   当 URL 包含 ?share=xxx 时自动启用：
+   版本：v2.0 · 2026-08-06 23:30
+   修复：applyShareData 加 await + 写完后强制重新渲染（手机适配）
+   ═══════════════════════════════════════════════════════════════ */
    1. 从 Supabase 加载分享数据
    2. 写入 localStorage
    3. 禁用所有编辑功能（contenteditable、按钮、输入框）
@@ -258,8 +260,34 @@
       var shareData = await window.OCCloudShare.loadData(token);
       console.log('[ReadOnly] 数据加载成功:', shareData.title);
 
-      // 应用数据
-      applyShareData(shareData);
+      // 应用数据（必须 await —— 手机上 IndexedDB 初始化慢，不 await 会导致页面渲染时 localStorage 还是空的）
+      await applyShareData(shareData);
+      console.log('[ReadOnly] applyShareData 完成，触发页面重新渲染');
+
+      // 数据写入后强制重新渲染（main.js 可能在数据写入前就已经渲染了空页面）
+      if (window.OCStorage && typeof window.OCStorage.autoRestore === 'function') {
+        try { window.OCStorage.autoRestore(); } catch (e) { console.warn('[ReadOnly] autoRestore 失败:', e); }
+      }
+      if (window.OCEdit && typeof window.OCEdit.refreshAllFromStorage === 'function') {
+        try { window.OCEdit.refreshAllFromStorage(); } catch (e) { console.warn('[ReadOnly] refreshAll 失败:', e); }
+      }
+      // 再延迟一次刷新（等图片异步加载完成后占位图替换为真实图片）
+      setTimeout(function () {
+        if (window.OCStorage && typeof window.OCStorage.autoRestore === 'function') {
+          try { window.OCStorage.autoRestore(); } catch (e) {}
+        }
+        if (window.OCEdit && typeof window.OCEdit.refreshAllFromStorage === 'function') {
+          try { window.OCEdit.refreshAllFromStorage(); } catch (e) {}
+        }
+      }, 500);
+      setTimeout(function () {
+        if (window.OCStorage && typeof window.OCStorage.autoRestore === 'function') {
+          try { window.OCStorage.autoRestore(); } catch (e) {}
+        }
+        if (window.OCEdit && typeof window.OCEdit.refreshAllFromStorage === 'function') {
+          try { window.OCEdit.refreshAllFromStorage(); } catch (e) {}
+        }
+      }, 1500);
 
       // 增加浏览次数
       window.OCCloudShare.incrementViews(token);
@@ -293,5 +321,5 @@
     init();
   }
 
-  console.log('[ReadOnly] 只读模式模块加载完成');
+  console.log('[ReadOnly] 只读模式模块加载完成 v2.0 · 手机适配版');
 })();
