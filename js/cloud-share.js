@@ -104,23 +104,26 @@
       var img = new Image();
       img.onload = function () {
         try {
-          // 已经够小的图不压缩
-          if (img.width <= maxWidth) {
-            resolve(base64);
-            return;
+          // 超过 maxWidth 才等比缩小；否则保持原尺寸
+          // 但无论如何都走 Canvas → JPEG 重编码，确保质量压缩生效
+          var w, h;
+          if (img.width > maxWidth) {
+            w = maxWidth;
+            h = Math.round(img.height * (maxWidth / img.width));
+          } else {
+            w = img.width;
+            h = img.height;
           }
-          var w = maxWidth;
-          var h = Math.round(img.height * (maxWidth / img.width));
           var canvas = document.createElement('canvas');
           canvas.width = w;
           canvas.height = h;
           var ctx = canvas.getContext('2d');
-          // JPEG 不透明，先填白底避免变黑
+          // JPEG 不透明，先填白底避免透明区域变黑
           ctx.fillStyle = '#FFFFFF';
           ctx.fillRect(0, 0, w, h);
           ctx.drawImage(img, 0, 0, w, h);
           var compressed = canvas.toDataURL('image/jpeg', quality);
-          console.log('[CloudShare] 压缩：' + Math.round(base64.length / 1024) + 'KB → ' + Math.round(compressed.length / 1024) + 'KB (原 ' + img.width + 'x' + img.height + ')');
+          console.log('[CloudShare] 压缩：' + Math.round(base64.length / 1024) + 'KB → ' + Math.round(compressed.length / 1024) + 'KB (原 ' + img.width + 'x' + img.height + ' → 新 ' + w + 'x' + h + ')');
           resolve(compressed);
         } catch (e) {
           console.warn('[CloudShare] 压缩异常，使用原图:', e && e.message);
