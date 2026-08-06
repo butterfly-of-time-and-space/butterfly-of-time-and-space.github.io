@@ -87,31 +87,109 @@
     return bundle;
   }
 
-  // ── 解析 idb: 图片引用为 base64 ────────────────────────────
-  function resolveImages(data) {
-    if (!window.OCImageStore || !window.OCImageStore.get) return data;
-    function walk(obj) {
+  // ── 单张图片压缩（Canvas 等比缩放 + JPEG 质量压缩）────────────
+  function compressImage(base64, maxWidth, quality) {
+    return new Promise(function (resolve) {
+      if (base64.length < 1500 || base64.indexOf('data:image/') !== 0) {
+        resolve(base64);
+        return;
+      }
+      var mimeMatch = base64.match(/:(.*?);/);
+      var mime = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+      // SVG 和 GIF 不压缩（SVG 是矢量，GIF 压缩会破坏动画）
+      if (mime === 'image/svg+xml' || mime === 'image/gif') {
+        resolve(base64);
+        return;
+      }
+      var img = new Image();
+      img.onload = function () {
+        try {
+          // 已经够小的图不压缩
+          if (img.width <= maxWidth) {
+            resolve(base64);
+            return;
+          }
+          var w = maxWidth;
+          var h = Math.round(img.height * (maxWidth / img.width));
+          var canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          var ctx = canvas.getContext('2d');
+          // JPEG 不透明，先填白底避免变黑
+          ctx.fillStyle = '#FFFFFF';
+          ctx.fillRect(0, 0, w, h);
+          ctx.drawImage(img, 0, 0, w, h);
+          var compressed = canvas.toDataURL('image/jpeg', quality);
+          console.log('[CloudShare] 压缩：' + Math.round(base64.length / 1024) + 'KB → ' + Math.round(compressed.length / 1024) + 'KB (原 ' + img.width + 'x' + img.height + ')');
+          resolve(compressed);
+        } catch (e) {
+          console.warn('[CloudShare] 压缩异常，使用原图:', e && e.message);
+          resolve(base64);
+        }
+      };
+      img.onerror = function () {
+        console.warn('[CloudShare] 图片加载失败，跳过压缩');
+        resolve(base64);
+      };
+      img.src = base64;
+    });
+  }
+
+  // ── 解析 idb: 引用为 base64，并把所有图片压缩到 800px / JPEG 0.7 ──
+  async function resolveAndCompressImages(data) {
+    var stats = { count: 0, totalSaved: 0 };
+
+    async function walk(obj) {
       if (obj === null || obj === undefined) return obj;
       if (typeof obj === 'string') {
-        if (obj.indexOf('idb:') === 0) {
+        // idb: 引用 → 从 IndexedDB 读 base64，再压缩
+        if (obj.indexOf('idb:') === 0 && window.OCImageStore && window.OCImageStore.get) {
           var base64 = window.OCImageStore.get(obj);
-          return base64 || '';
+          if (!base64) return '';
+          var before = base64.length;
+          var compressed = await compressImage(base64, 1200, 0.8);
+          if (compressed.length < before) {
+            stats.count++;
+            stats.totalSaved += (before - compressed.length);
+          }
+          return compressed;
+        }
+        // 已经是 base64 的图片数据
+        if (obj.indexOf('data:image/') === 0 && obj.length > 5000) {
+          var before2 = obj.length;
+          var compressed2 = await compressImage(obj, 1200, 0.8);
+          if (compressed2.length < before2) {
+            stats.count++;
+            stats.totalSaved += (before2 - compressed2.length);
+          }
+          return compressed2;
         }
         return obj;
       }
       if (Array.isArray(obj)) {
-        return obj.map(walk);
+        var arr = [];
+        for (var i = 0; i < obj.length; i++) {
+          arr.push(await walk(obj[i]));
+        }
+        return arr;
       }
       if (typeof obj === 'object') {
         var result = {};
         for (var k in obj) {
-          if (obj.hasOwnProperty(k)) result[k] = walk(obj[k]);
+          if (obj.hasOwnProperty(k)) {
+            result[k] = await walk(obj[k]);
+          }
         }
         return result;
       }
       return obj;
     }
-    return walk(data);
+
+    var result = await walk(data);
+    if (stats.count > 0) {
+      console.log('[CloudShare] 压缩完成：处理 ' + stats.count + ' 张图，节省 ' + Math.round(stats.totalSaved / 1024) + 'KB');
+    }
+    return result;
   }
 
   // ── 获取当前用户邮箱 ────────────────────────────────────────
@@ -160,10 +238,10 @@
       throw new Error('当前没有可分享的内容');
     }
 
-    // 解析图片
-    var resolvedData = resolveImages(rawData);
+    // 解析 idb: 图片引用为 base64，并自动压缩到 800px / JPEG 0.7
+    var resolvedData = await resolveAndCompressImages(rawData);
 
-    // JSON 序列化
+    // JSON 序列化（图片压缩后应该只有几 MB）
     var jsonStr;
     try {
       jsonStr = JSON.stringify(resolvedData);
@@ -171,11 +249,12 @@
       throw new Error('数据序列化失败：' + (e.message || ''));
     }
 
-    // 大小检查（Supabase REST API 网关限制 100MB，这里设 50MB 安全余量）
-    if (jsonStr.length > 50000000) {
-      throw new Error('数据过大（' + Math.round(jsonStr.length / 1024 / 1024) + 'MB），请减少图片内容');
+    console.log('[CloudShare] 数据总大小：' + Math.round(jsonStr.length / 1024) + 'KB（约 ' + (jsonStr.length / 1024 / 1024).toFixed(1) + 'MB）');
+
+    // 大小检查（Supabase REST 网关约 100MB，留足余量设为 30MB）
+    if (jsonStr.length > 30000000) {
+      throw new Error('数据仍过大（' + (jsonStr.length / 1024 / 1024).toFixed(1) + 'MB），请删除一些图片或联系开发者');
     }
-    console.log('[CloudShare] 数据大小：' + Math.round(jsonStr.length / 1024) + 'KB');
 
     // 生成唯一 token
     var token = await generateUniqueToken();
@@ -229,7 +308,8 @@
       throw new Error('分享不存在或已下架');
     }
 
-    return result.data[0];
+    var shareData = result.data[0];
+    return shareData;
   }
 
   // ── 3. 更新分享 ─────────────────────────────────────────────
