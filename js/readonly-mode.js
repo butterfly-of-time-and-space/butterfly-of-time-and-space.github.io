@@ -20,8 +20,45 @@
     return params.get('share');
   }
 
-  // ── 应用数据到 localStorage ─────────────────────────────────
-  function applyShareData(shareData) {
+  // ── 等待 IndexedDB 就绪 ────────────────────────────────────
+  function waitForImageStore() {
+    return new Promise(function (resolve) {
+      if (!window.OCImageStore) { resolve(); return; }
+      if (window.OCImageStore.isReady()) { resolve(); return; }
+      window.OCImageStore.init(function () { resolve(); });
+    });
+  }
+
+  // ── 深度遍历：把 data:image/ 字符串存到 IndexedDB，替换为 idb: 引用 ──
+  function extractImagesToIDB(obj) {
+    if (obj === null || obj === undefined) return obj;
+    if (typeof obj === 'string') {
+      // 只处理真正的 base64 图片（避免误判 data:image/svg+xml 这类小占位图）
+      if (obj.indexOf('data:image/') === 0 && obj.length > 5000 && window.OCImageStore && window.OCImageStore.hasDB()) {
+        try {
+          return window.OCImageStore.save(obj);
+        } catch (e) {
+          console.warn('[ReadOnly] 图片提取失败，保留原值:', e.message);
+          return obj;
+        }
+      }
+      return obj;
+    }
+    if (Array.isArray(obj)) {
+      return obj.map(extractImagesToIDB);
+    }
+    if (typeof obj === 'object') {
+      var result = {};
+      for (var k in obj) {
+        if (obj.hasOwnProperty(k)) result[k] = extractImagesToIDB(obj[k]);
+      }
+      return result;
+    }
+    return obj;
+  }
+
+  // ── 应用数据到 localStorage（图片先写 IndexedDB）─────────────
+  async function applyShareData(shareData) {
     if (!shareData || !shareData.data) {
       console.error('[ReadOnly] 分享数据为空');
       return false;
@@ -29,31 +66,54 @@
 
     var d = shareData.data;
 
+    // 等 IndexedDB 就绪，再转换图片引用
+    await waitForImageStore();
+    var stats = { count: 0, totalSize: 0 };
+    function walkCount(obj) {
+      if (obj === null || obj === undefined) return;
+      if (typeof obj === 'string') {
+        if (obj.indexOf('data:image/') === 0 && obj.length > 5000) {
+          stats.count++;
+          stats.totalSize += obj.length;
+        }
+        return;
+      }
+      if (Array.isArray(obj)) { obj.forEach(walkCount); return; }
+      if (typeof obj === 'object') {
+        for (var k in obj) if (obj.hasOwnProperty(k)) walkCount(obj[k]);
+      }
+    }
+    walkCount(d);
+    console.log('[ReadOnly] 准备存储 ' + stats.count + ' 张图片（约 ' + Math.round(stats.totalSize / 1024) + 'KB）到 IndexedDB');
+
+    var cleanData = extractImagesToIDB(d);
+
     // 主存档
-    if (d.data || d.version) {
+    if (cleanData.data || cleanData.version) {
       var archive = {
-        version: d.version || '2.0',
-        savedAt: d.savedAt || new Date().toISOString(),
-        data: d.data || {}
+        version: cleanData.version || '2.0',
+        savedAt: cleanData.savedAt || new Date().toISOString(),
+        data: cleanData.data || {}
       };
       localStorage.setItem('chuxiyan_oc_archive', JSON.stringify(archive));
     }
 
     // 角色数据
-    if (d.characters) {
-      localStorage.setItem('chuxiyan_oc_characters', JSON.stringify(d.characters));
+    if (cleanData.characters) {
+      localStorage.setItem('chuxiyan_oc_characters', JSON.stringify(cleanData.characters));
     }
 
     // 小说数据
-    if (d.novels) {
-      localStorage.setItem('chuxiyan_oc_novels', JSON.stringify(d.novels));
+    if (cleanData.novels) {
+      localStorage.setItem('chuxiyan_oc_novels', JSON.stringify(cleanData.novels));
     }
 
     // IF 线数据
-    if (d.ifWorlds) {
-      localStorage.setItem('chuxiyan_oc_ifworlds', JSON.stringify(d.ifWorlds));
+    if (cleanData.ifWorlds) {
+      localStorage.setItem('chuxiyan_oc_ifworlds', JSON.stringify(cleanData.ifWorlds));
     }
 
+    console.log('[ReadOnly] 数据写入完成');
     return true;
   }
 
