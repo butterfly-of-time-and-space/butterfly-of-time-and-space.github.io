@@ -171,10 +171,11 @@
       throw new Error('数据序列化失败：' + (e.message || ''));
     }
 
-    // 大小检查（Supabase 免费版单行限制 ~1MB，超出提示）
-    if (jsonStr.length > 900000) {
-      throw new Error('数据过大（' + Math.round(jsonStr.length / 1024) + 'KB），请减少图片内容');
+    // 大小检查（Supabase REST API 网关限制 100MB，这里设 50MB 安全余量）
+    if (jsonStr.length > 50000000) {
+      throw new Error('数据过大（' + Math.round(jsonStr.length / 1024 / 1024) + 'MB），请减少图片内容');
     }
+    console.log('[CloudShare] 数据大小：' + Math.round(jsonStr.length / 1024) + 'KB');
 
     // 生成唯一 token
     var token = await generateUniqueToken();
