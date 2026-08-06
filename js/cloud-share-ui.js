@@ -111,9 +111,9 @@
       window.OCWatermark.setMode(watermark);
     }
 
-    // 显示加载中
+    // 显示加载中（图片上传可能需要较长时间）
     var body = document.getElementById('cs-body');
-    body.innerHTML = '<div class="cs-loading"><div class="cs-spinner"></div><p>正在上传数据…</p></div>';
+    body.innerHTML = '<div class="cs-loading"><div class="cs-spinner"></div><p>正在压缩图片并上传…</p><p class="cs-loading-hint" style="font-size:12px;color:#888;margin-top:8px;">图片较多时可能需要几十秒，请耐心等待</p></div>';
 
     try {
       var result = await window.OCCloudShare.generateLink({
