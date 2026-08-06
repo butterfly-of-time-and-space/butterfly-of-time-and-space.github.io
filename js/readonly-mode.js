@@ -1,8 +1,9 @@
 /* ═══════════════════════════════════════════════════════════════
    只读模式模块 · readonly-mode.js
    ═══════════════════════════════════════════════════════════════
-   版本：v3.0 · 2026-08-06 23:38
+   版本：v3.1 · 2026-08-06 23:55
    策略变更：不走 IndexedDB，base64 直接写 localStorage（手机兼容）
+   v3.1 修复：诊断面板可折叠可关闭不挡按钮；验证检查所有存储区
    ═══════════════════════════════════════════════════════════════ */
 
 (function () {
@@ -17,18 +18,59 @@
   }
 
   // ── 页面可见诊断（不用开 Console 就能看到状态）──────────────
+  // v2：可折叠、可关闭、不遮挡按钮
   function diag(msg) {
     console.log('[ReadOnly] ' + msg);
-    var el = document.getElementById('readonly-diag');
-    if (!el) {
-      el = document.createElement('div');
-      el.id = 'readonly-diag';
-      el.style.cssText = 'position:fixed;bottom:10px;left:10px;right:10px;z-index:99999;background:rgba(0,0,0,0.85);color:#0f0;font-size:11px;font-family:monospace;padding:8px 12px;border-radius:6px;max-height:200px;overflow-y:auto;pointer-events:auto;';
-      document.body.appendChild(el);
+    var container = document.getElementById('readonly-diag');
+    if (!container) {
+      container = document.createElement('div');
+      container.id = 'readonly-diag';
+      container.style.cssText = 'position:fixed;bottom:10px;left:10px;right:10px;z-index:99999;pointer-events:none;';
+
+      // 标题栏（可点击折叠/展开，pointer-events:auto）
+      var header = document.createElement('div');
+      header.id = 'readonly-diag-header';
+      header.style.cssText = 'background:rgba(0,0,0,0.85);color:#0f0;font-size:11px;font-family:monospace;padding:4px 10px;border-radius:6px 6px 0 0;display:flex;justify-content:space-between;align-items:center;pointer-events:auto;cursor:pointer;user-select:none;';
+      header.innerHTML = '<span>📋 调试日志</span>';
+
+      var btns = document.createElement('span');
+      btns.style.cssText = 'display:flex;gap:8px;align-items:center;';
+      btns.innerHTML =
+        '<span id="readonly-diag-toggle" style="cursor:pointer;font-size:13px;">▼</span>' +
+        '<span id="readonly-diag-close" style="cursor:pointer;font-size:13px;color:#f66;">✕</span>';
+      header.appendChild(btns);
+
+      // 日志内容区
+      var content = document.createElement('div');
+      content.id = 'readonly-diag-content';
+      content.style.cssText = 'background:rgba(0,0,0,0.85);color:#0f0;font-size:11px;font-family:monospace;padding:6px 10px;border-radius:0 0 6px 6px;max-height:180px;overflow-y:auto;pointer-events:auto;';
+
+      container.appendChild(header);
+      container.appendChild(content);
+      document.body.appendChild(container);
+
+      // 点击标题栏：折叠/展开（点 ✕ 关闭）
+      header.addEventListener('click', function (e) {
+        if (e.target.id === 'readonly-diag-close') {
+          container.style.display = 'none';
+          return;
+        }
+        var c = document.getElementById('readonly-diag-content');
+        var t = document.getElementById('readonly-diag-toggle');
+        if (c.style.display === 'none') {
+          c.style.display = '';
+          t.textContent = '▼';
+        } else {
+          c.style.display = 'none';
+          t.textContent = '▲';
+        }
+      });
     }
+    var content = document.getElementById('readonly-diag-content');
+    if (!content) return;
     var time = new Date().toLocaleTimeString();
-    el.innerHTML += '[' + time + '] ' + msg + '<br>';
-    el.scrollTop = el.scrollHeight;
+    content.insertAdjacentHTML('beforeend', '[' + time + '] ' + msg + '<br>');
+    content.scrollTop = content.scrollHeight;
   }
 
   // ── 统计图片数量和大小 ─────────────────────────────────────
@@ -290,7 +332,7 @@
     injectReadOnlyCSS();
     showBanner('正在加载数据…');
 
-    diag('🚀 只读模式启动 v3.0');
+    diag('🚀 只读模式启动 v3.1');
     diag('🔗 token: ' + token.substring(0, 8) + '...');
 
     try {
@@ -312,11 +354,28 @@
 
       // 验证：从 localStorage 读回数据，检查图片是否可读
       try {
-        var verify = window.ocStorage ? window.ocStorage.get('chuxiyan_oc_archive') : JSON.parse(localStorage.getItem('chuxiyan_oc_archive') || '{}');
-        if (verify && verify.data) {
-          var verifyStats = countImages(verify);
-          diag('🔍 验证：读回 ' + verifyStats.count + ' 张图片（' + Math.round(verifyStats.totalSize / 1024) + 'KB）');
+        var totalImgs = 0;
+        var totalBytes = 0;
+
+        // 检查主存档
+        var verifyArchive = window.ocStorage ? window.ocStorage.get('chuxiyan_oc_archive') : JSON.parse(localStorage.getItem('chuxiyan_oc_archive') || '{}');
+        if (verifyArchive && verifyArchive.data) {
+          var aStats = countImages(verifyArchive);
+          totalImgs += aStats.count;
+          totalBytes += aStats.totalSize;
+          diag('🔍 主存档：' + aStats.count + ' 张图片（' + Math.round(aStats.totalSize / 1024) + 'KB）');
         }
+
+        // 检查角色数据（图片大头通常在这）
+        var verifyChars = window.ocStorage ? window.ocStorage.get('chuxiyan_oc_characters') : JSON.parse(localStorage.getItem('chuxiyan_oc_characters') || '{}');
+        if (verifyChars) {
+          var cStats = countImages(verifyChars);
+          totalImgs += cStats.count;
+          totalBytes += cStats.totalSize;
+          diag('🔍 角色数据：' + cStats.count + ' 张图片（' + Math.round(cStats.totalSize / 1024) + 'KB）');
+        }
+
+        diag('🔍 总计读回 ' + totalImgs + ' 张图片（' + Math.round(totalBytes / 1024) + 'KB）');
       } catch (ve) {
         diag('⚠️ 验证读取异常：' + ve.message);
       }
@@ -352,11 +411,13 @@
           try { window.OCEdit.refreshAllFromStorage(); } catch (e) {}
         }
         diag('🔄 1500ms 后第三次刷新');
-        // 3秒后隐藏诊断面板
+        // 3秒后自动折叠诊断面板（不挡按钮）
         setTimeout(function () {
-          var el = document.getElementById('readonly-diag');
-          if (el) el.style.opacity = '0.5';
-        }, 1500);
+          var c = document.getElementById('readonly-diag-content');
+          var t = document.getElementById('readonly-diag-toggle');
+          if (c) { c.style.display = 'none'; }
+          if (t) { t.textContent = '▲'; }
+        }, 3000);
       }, 1500);
 
       // 增加浏览次数
@@ -391,5 +452,5 @@
     init();
   }
 
-  console.log('[ReadOnly] 只读模式模块加载完成 v3.0 · 直写 localStorage · 手机适配版');
+  console.log('[ReadOnly] 只读模式模块加载完成 v3.1 · 直写 localStorage · 可折叠诊断面板');
 })();
