@@ -1,0 +1,618 @@
+/* ═══════════════════════════════════════════════════════════════
+   音乐播放器 · 东方玄幻风格
+   紫金配色 · 蝶翼主题 · 悬浮可折叠
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── 播放器容器 ──────────────────────────────────────────────── */
+#music-player {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9000;
+  font-family: var(--font-body);
+  user-select: none;
+}
+
+/* ── 折叠态：圆形蝶钮 ─────────────────────────────────────────── */
+#music-player .mp-toggle {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(122, 96, 168, 0.85), rgba(106, 74, 144, 0.85));
+  border: 1.5px solid rgba(180, 160, 220, 0.4);
+  box-shadow: 0 4px 20px rgba(100, 80, 150, 0.3), 0 0 12px rgba(140, 120, 190, 0.2);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.35s var(--ease-smooth);
+  backdrop-filter: blur(8px);
+  position: relative;
+  z-index: 2;
+}
+
+#music-player .mp-toggle:hover {
+  transform: scale(1.08);
+  box-shadow: 0 6px 28px rgba(100, 80, 150, 0.4), 0 0 20px rgba(160, 140, 210, 0.3);
+}
+
+#music-player .mp-toggle svg {
+  width: 24px;
+  height: 24px;
+  fill: none;
+  stroke: rgba(255, 240, 255, 0.9);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform 0.3s var(--ease-smooth);
+}
+
+#music-player .mp-toggle.playing svg {
+  animation: mp-butterfly-flap 2s ease-in-out infinite;
+}
+
+@keyframes mp-butterfly-flap {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+/* 播放时底部小红点指示 */
+#music-player .mp-toggle::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--crimson);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+#music-player .mp-toggle.playing::after {
+  opacity: 0.8;
+  animation: mp-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes mp-pulse {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
+
+/* ── 展开态面板 ──────────────────────────────────────────────── */
+#music-player .mp-panel {
+  position: absolute;
+  bottom: 64px;
+  right: 0;
+  width: 340px;
+  max-height: 480px;
+  background: rgba(248, 244, 255, 0.92);
+  border: 1px solid var(--border-purple);
+  border-radius: 16px;
+  box-shadow: 0 8px 40px rgba(80, 60, 120, 0.2), 0 2px 12px rgba(100, 80, 150, 0.12);
+  backdrop-filter: blur(16px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transform: translateY(12px) scale(0.95);
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.35s var(--ease-smooth);
+}
+
+#music-player.open .mp-panel {
+  transform: translateY(0) scale(1);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* ── 面板头部 ────────────────────────────────────────────────── */
+#music-player .mp-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid var(--border-gold);
+}
+
+#music-player .mp-header-title {
+  font-family: var(--font-deco);
+  font-size: 15px;
+  color: var(--text-gold);
+  letter-spacing: 1px;
+}
+
+#music-player .mp-header-actions {
+  display: flex;
+  gap: 6px;
+}
+
+#music-player .mp-icon-btn {
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 8px;
+  background: rgba(140, 120, 180, 0.1);
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  transition: all 0.2s var(--ease-smooth);
+}
+
+#music-player .mp-icon-btn:hover {
+  background: rgba(140, 120, 180, 0.2);
+  color: var(--text-primary);
+}
+
+#music-player .mp-icon-btn svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* ── 当前曲目信息区 ──────────────────────────────────────────── */
+#music-player .mp-now-playing {
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid var(--border-gold);
+}
+
+#music-player .mp-cover {
+  width: 52px;
+  height: 52px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--purple-glow), var(--gold-bright));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+#music-player .mp-cover svg {
+  width: 26px;
+  height: 26px;
+  fill: none;
+  stroke: rgba(255, 240, 255, 0.7);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+#music-player .mp-cover.playing svg {
+  animation: mp-cover-spin 8s linear infinite;
+}
+
+@keyframes mp-cover-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+#music-player .mp-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+#music-player .mp-track-info {
+  flex: 1;
+  min-width: 0;
+}
+
+#music-player .mp-track-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 2px;
+}
+
+#music-player .mp-track-name.empty {
+  color: var(--text-muted);
+  font-weight: 400;
+  font-style: italic;
+}
+
+#music-player .mp-track-status {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: var(--font-deco);
+}
+
+/* ── 进度条 ──────────────────────────────────────────────────── */
+#music-player .mp-progress-section {
+  padding: 8px 16px 4px;
+}
+
+#music-player .mp-progress-bar {
+  width: 100%;
+  height: 4px;
+  background: rgba(140, 120, 180, 0.15);
+  border-radius: 2px;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+#music-player .mp-progress-filled {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--purple-glow), var(--gold-bright));
+  border-radius: 2px;
+  transition: width 0.15s linear;
+  position: relative;
+}
+
+#music-player .mp-progress-filled::after {
+  content: '';
+  position: absolute;
+  right: -4px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--gold-bright);
+  box-shadow: 0 0 6px rgba(106, 74, 144, 0.4);
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+#music-player .mp-progress-bar:hover .mp-progress-filled::after {
+  opacity: 1;
+}
+
+#music-player .mp-time-display {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 4px;
+  font-size: 10px;
+  color: var(--text-muted);
+  font-family: monospace;
+}
+
+/* ── 控制按钮 ────────────────────────────────────────────────── */
+#music-player .mp-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 16px 10px;
+}
+
+#music-player .mp-ctrl-btn {
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(140, 120, 180, 0.08);
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s var(--ease-smooth);
+}
+
+#music-player .mp-ctrl-btn:hover {
+  background: rgba(140, 120, 180, 0.18);
+  color: var(--text-primary);
+}
+
+#music-player .mp-ctrl-btn.play-pause {
+  width: 44px;
+  height: 44px;
+  background: linear-gradient(135deg, var(--purple-glow), var(--gold-bright));
+  color: rgba(255, 240, 255, 0.95);
+  box-shadow: 0 2px 12px rgba(100, 80, 150, 0.25);
+}
+
+#music-player .mp-ctrl-btn.play-pause:hover {
+  transform: scale(1.06);
+  box-shadow: 0 4px 18px rgba(100, 80, 150, 0.35);
+}
+
+#music-player .mp-ctrl-btn svg {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+  stroke: none;
+}
+
+#music-player .mp-ctrl-btn.play-pause svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* ── 音量控制 ────────────────────────────────────────────────── */
+#music-player .mp-volume-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 16px 8px;
+}
+
+#music-player .mp-volume-icon {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: var(--text-muted);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex-shrink: 0;
+}
+
+#music-player .mp-volume-slider {
+  flex: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 3px;
+  background: rgba(140, 120, 180, 0.15);
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+
+#music-player .mp-volume-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--gold-bright);
+  cursor: pointer;
+  box-shadow: 0 0 4px rgba(106, 74, 144, 0.3);
+}
+
+#music-player .mp-volume-slider::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border: none;
+  border-radius: 50%;
+  background: var(--gold-bright);
+  cursor: pointer;
+  box-shadow: 0 0 4px rgba(106, 74, 144, 0.3);
+}
+
+/* ── 播放列表 ────────────────────────────────────────────────── */
+#music-player .mp-playlist {
+  flex: 1;
+  overflow-y: auto;
+  max-height: 200px;
+  padding: 4px 8px;
+}
+
+#music-player .mp-playlist::-webkit-scrollbar {
+  width: 4px;
+}
+
+#music-player .mp-playlist::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+#music-player .mp-playlist::-webkit-scrollbar-thumb {
+  background: rgba(140, 120, 180, 0.25);
+  border-radius: 2px;
+}
+
+#music-player .mp-playlist-empty {
+  text-align: center;
+  padding: 20px 16px;
+  font-size: 12px;
+  color: var(--text-muted);
+  font-family: var(--font-deco);
+  line-height: 1.8;
+}
+
+#music-player .mp-playlist-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s var(--ease-smooth);
+}
+
+#music-player .mp-playlist-item:hover {
+  background: rgba(140, 120, 180, 0.08);
+}
+
+#music-player .mp-playlist-item.active {
+  background: rgba(140, 120, 180, 0.14);
+}
+
+#music-player .mp-pl-index {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: monospace;
+  width: 18px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+#music-player .mp-playlist-item.active .mp-pl-index {
+  color: var(--gold-bright);
+}
+
+#music-player .mp-pl-name {
+  flex: 1;
+  font-size: 12px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#music-player .mp-playlist-item.active .mp-pl-name {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+#music-player .mp-pl-delete {
+  width: 20px;
+  height: 20px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+#music-player .mp-playlist-item:hover .mp-pl-delete {
+  opacity: 0.6;
+}
+
+#music-player .mp-pl-delete:hover {
+  opacity: 1 !important;
+  background: rgba(184, 80, 112, 0.12);
+  color: var(--crimson);
+}
+
+/* 播放中动画指示 */
+#music-player .mp-pl-playing-icon {
+  display: none;
+  align-items: flex-end;
+  gap: 2px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+#music-player .mp-playlist-item.active.playing .mp-pl-playing-icon {
+  display: flex;
+}
+
+#music-player .mp-playlist-item.active.playing .mp-pl-index {
+  display: none;
+}
+
+#music-player .mp-pl-playing-icon span {
+  width: 2px;
+  background: var(--gold-bright);
+  border-radius: 1px;
+  animation: mp-bar-bounce 0.8s ease-in-out infinite;
+}
+
+#music-player .mp-pl-playing-icon span:nth-child(1) { height: 6px; animation-delay: 0s; }
+#music-player .mp-pl-playing-icon span:nth-child(2) { height: 10px; animation-delay: 0.15s; }
+#music-player .mp-pl-playing-icon span:nth-child(3) { height: 8px; animation-delay: 0.3s; }
+
+@keyframes mp-bar-bounce {
+  0%, 100% { transform: scaleY(0.5); }
+  50% { transform: scaleY(1); }
+}
+
+/* ── 添加歌曲区域 ────────────────────────────────────────────── */
+#music-player .mp-add-section {
+  padding: 8px 12px 12px;
+  border-top: 1px solid var(--border-gold);
+  display: flex;
+  gap: 6px;
+}
+
+#music-player .mp-add-input {
+  flex: 1;
+  height: 30px;
+  border: 1px solid var(--border-purple);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.6);
+  padding: 0 10px;
+  font-size: 12px;
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+#music-player .mp-add-input:focus {
+  border-color: var(--purple-glow);
+}
+
+#music-player .mp-add-input::placeholder {
+  color: var(--text-muted);
+}
+
+#music-player .mp-add-btn {
+  height: 30px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--purple-glow), var(--gold-bright));
+  color: rgba(255, 240, 255, 0.95);
+  font-size: 12px;
+  font-family: var(--font-body);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s var(--ease-smooth);
+}
+
+#music-player .mp-add-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 10px rgba(100, 80, 150, 0.25);
+}
+
+#music-player .mp-file-label {
+  height: 30px;
+  width: 30px;
+  border: 1px solid var(--border-purple);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.6);
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s var(--ease-smooth);
+  flex-shrink: 0;
+}
+
+#music-player .mp-file-label:hover {
+  background: rgba(140, 120, 180, 0.12);
+  color: var(--text-primary);
+}
+
+#music-player .mp-file-label svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+#music-player .mp-file-label input {
+  display: none;
+}
+
+/* ── 循环模式按钮 ────────────────────────────────────────────── */
+#music-player .mp-mode-btn {
+  font-size: 13px;
+  line-height: 1;
+}
+
+#music-player .mp-mode-btn.active {
+  background: rgba(106, 74, 144, 0.15);
+  color: var(--gold-bright);
+}
