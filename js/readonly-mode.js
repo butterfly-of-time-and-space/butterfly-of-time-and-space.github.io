@@ -1,14 +1,8 @@
 /* ═══════════════════════════════════════════════════════════════
    只读模式模块 · readonly-mode.js
    ═══════════════════════════════════════════════════════════════
-   版本：v2.0 · 2026-08-06 23:30
-   修复：applyShareData 加 await + 写完后强制重新渲染（手机适配）
-   ═══════════════════════════════════════════════════════════════ */
-   1. 从 Supabase 加载分享数据
-   2. 写入 localStorage
-   3. 禁用所有编辑功能（contenteditable、按钮、输入框）
-   4. 隐藏编辑入口
-   5. 显示"只读模式"提示条
+   版本：v3.0 · 2026-08-06 23:38
+   策略变更：不走 IndexedDB，base64 直接写 localStorage（手机兼容）
    ═══════════════════════════════════════════════════════════════ */
 
 (function () {
@@ -22,101 +16,148 @@
     return params.get('share');
   }
 
-  // ── 等待 IndexedDB 就绪 ────────────────────────────────────
-  function waitForImageStore() {
-    return new Promise(function (resolve) {
-      if (!window.OCImageStore) { resolve(); return; }
-      if (window.OCImageStore.isReady()) { resolve(); return; }
-      window.OCImageStore.init(function () { resolve(); });
-    });
+  // ── 页面可见诊断（不用开 Console 就能看到状态）──────────────
+  function diag(msg) {
+    console.log('[ReadOnly] ' + msg);
+    var el = document.getElementById('readonly-diag');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'readonly-diag';
+      el.style.cssText = 'position:fixed;bottom:10px;left:10px;right:10px;z-index:99999;background:rgba(0,0,0,0.85);color:#0f0;font-size:11px;font-family:monospace;padding:8px 12px;border-radius:6px;max-height:200px;overflow-y:auto;pointer-events:auto;';
+      document.body.appendChild(el);
+    }
+    var time = new Date().toLocaleTimeString();
+    el.innerHTML += '[' + time + '] ' + msg + '<br>';
+    el.scrollTop = el.scrollHeight;
   }
 
-  // ── 深度遍历：把 data:image/ 字符串存到 IndexedDB，替换为 idb: 引用 ──
-  function extractImagesToIDB(obj) {
-    if (obj === null || obj === undefined) return obj;
-    if (typeof obj === 'string') {
-      // 只处理真正的 base64 图片（避免误判 data:image/svg+xml 这类小占位图）
-      if (obj.indexOf('data:image/') === 0 && obj.length > 5000 && window.OCImageStore && window.OCImageStore.hasDB()) {
-        try {
-          return window.OCImageStore.save(obj);
-        } catch (e) {
-          console.warn('[ReadOnly] 图片提取失败，保留原值:', e.message);
-          return obj;
+  // ── 统计图片数量和大小 ─────────────────────────────────────
+  function countImages(obj) {
+    var stats = { count: 0, totalSize: 0 };
+    function walk(o) {
+      if (o === null || o === undefined) return;
+      if (typeof o === 'string') {
+        if (o.indexOf('data:image/') === 0) {
+          stats.count++;
+          stats.totalSize += o.length;
         }
+        return;
       }
-      return obj;
-    }
-    if (Array.isArray(obj)) {
-      return obj.map(extractImagesToIDB);
-    }
-    if (typeof obj === 'object') {
-      var result = {};
-      for (var k in obj) {
-        if (obj.hasOwnProperty(k)) result[k] = extractImagesToIDB(obj[k]);
+      if (Array.isArray(o)) { o.forEach(walk); return; }
+      if (typeof o === 'object') {
+        for (var k in o) if (o.hasOwnProperty(k)) walk(o[k]);
       }
-      return result;
     }
-    return obj;
+    walk(obj);
+    return stats;
   }
 
-  // ── 应用数据到 localStorage（图片先写 IndexedDB）─────────────
+  // ── 应用数据到 localStorage（base64 直接写，不走 IndexedDB）──
   async function applyShareData(shareData) {
     if (!shareData || !shareData.data) {
-      console.error('[ReadOnly] 分享数据为空');
+      diag('❌ 分享数据为空');
       return false;
     }
 
     var d = shareData.data;
 
-    // 等 IndexedDB 就绪，再转换图片引用
-    await waitForImageStore();
-    var stats = { count: 0, totalSize: 0 };
-    function walkCount(obj) {
-      if (obj === null || obj === undefined) return;
-      if (typeof obj === 'string') {
-        if (obj.indexOf('data:image/') === 0 && obj.length > 5000) {
-          stats.count++;
-          stats.totalSize += obj.length;
+    // 统计图片
+    var stats = countImages(d);
+    diag('📦 数据包含 ' + stats.count + ' 张图片（约 ' + Math.round(stats.totalSize / 1024) + 'KB）');
+
+    // 计算总大小
+    var totalSize = JSON.stringify(d).length;
+    diag('📏 数据总大小：' + Math.round(totalSize / 1024) + 'KB');
+
+    // 直接写 localStorage（base64 不转 idb: 引用）
+    // 压缩后的图片（800px/JPEG 0.7）每张几十 KB，总共几 MB 能装下
+    try {
+      // 主存档
+      if (d.data || d.version) {
+        var archive = {
+          version: d.version || '2.0',
+          savedAt: d.savedAt || new Date().toISOString(),
+          data: d.data || {}
+        };
+        localStorage.setItem('chuxiyan_oc_archive', JSON.stringify(archive));
+        diag('✅ 主存档已写入');
+      }
+
+      // 角色数据
+      if (d.characters) {
+        localStorage.setItem('chuxiyan_oc_characters', JSON.stringify(d.characters));
+        diag('✅ 角色数据已写入（' + (Array.isArray(d.characters) ? d.characters.length : '?') + ' 个角色）');
+      }
+
+      // 小说数据
+      if (d.novels) {
+        localStorage.setItem('chuxiyan_oc_novels', JSON.stringify(d.novels));
+        diag('✅ 小说数据已写入');
+      }
+
+      // IF 线数据
+      if (d.ifWorlds) {
+        localStorage.setItem('chuxiyan_oc_ifworlds', JSON.stringify(d.ifWorlds));
+        diag('✅ IF线数据已写入');
+      }
+
+      diag('🎉 所有数据写入完成');
+      return true;
+
+    } catch (e) {
+      diag('❌ localStorage 写入失败：' + e.message);
+      diag('💡 可能原因：数据太大（' + Math.round(totalSize / 1024) + 'KB > localStorage 上限）');
+
+      // 降级：尝试只写不含图片的文本数据
+      try {
+        diag('🔄 尝试降级：只写文本数据（不含图片）...');
+        var stripped = stripImages(d);
+        if (stripped.data || stripped.version) {
+          var archive2 = {
+            version: stripped.version || '2.0',
+            savedAt: stripped.savedAt || new Date().toISOString(),
+            data: stripped.data || {}
+          };
+          localStorage.setItem('chuxiyan_oc_archive', JSON.stringify(archive2));
         }
-        return;
+        if (stripped.characters) {
+          localStorage.setItem('chuxiyan_oc_characters', JSON.stringify(stripped.characters));
+        }
+        if (stripped.novels) {
+          localStorage.setItem('chuxiyan_oc_novels', JSON.stringify(stripped.novels));
+        }
+        if (stripped.ifWorlds) {
+          localStorage.setItem('chuxiyan_oc_ifworlds', JSON.stringify(stripped.ifWorlds));
+        }
+        diag('✅ 降级写入完成（图片被移除，文本保留）');
+        return true;
+      } catch (e2) {
+        diag('❌ 降级也失败：' + e2.message);
+        return false;
       }
-      if (Array.isArray(obj)) { obj.forEach(walkCount); return; }
-      if (typeof obj === 'object') {
-        for (var k in obj) if (obj.hasOwnProperty(k)) walkCount(obj[k]);
+    }
+  }
+
+  // ── 移除所有图片字段（降级用）──────────────────────────────
+  function stripImages(obj) {
+    if (obj === null || obj === undefined) return obj;
+    if (typeof obj === 'string') {
+      if (obj.indexOf('data:image/') === 0 && obj.length > 500) {
+        return ''; // 移除图片
       }
+      return obj;
     }
-    walkCount(d);
-    console.log('[ReadOnly] 准备存储 ' + stats.count + ' 张图片（约 ' + Math.round(stats.totalSize / 1024) + 'KB）到 IndexedDB');
-
-    var cleanData = extractImagesToIDB(d);
-
-    // 主存档
-    if (cleanData.data || cleanData.version) {
-      var archive = {
-        version: cleanData.version || '2.0',
-        savedAt: cleanData.savedAt || new Date().toISOString(),
-        data: cleanData.data || {}
-      };
-      localStorage.setItem('chuxiyan_oc_archive', JSON.stringify(archive));
+    if (Array.isArray(obj)) {
+      return obj.map(stripImages);
     }
-
-    // 角色数据
-    if (cleanData.characters) {
-      localStorage.setItem('chuxiyan_oc_characters', JSON.stringify(cleanData.characters));
+    if (typeof obj === 'object') {
+      var result = {};
+      for (var k in obj) {
+        if (obj.hasOwnProperty(k)) result[k] = stripImages(obj[k]);
+      }
+      return result;
     }
-
-    // 小说数据
-    if (cleanData.novels) {
-      localStorage.setItem('chuxiyan_oc_novels', JSON.stringify(cleanData.novels));
-    }
-
-    // IF 线数据
-    if (cleanData.ifWorlds) {
-      localStorage.setItem('chuxiyan_oc_ifworlds', JSON.stringify(cleanData.ifWorlds));
-    }
-
-    console.log('[ReadOnly] 数据写入完成');
-    return true;
+    return obj;
   }
 
   // ── 禁用所有编辑功能 ────────────────────────────────────────
@@ -249,7 +290,8 @@
     injectReadOnlyCSS();
     showBanner('正在加载数据…');
 
-    console.log('[ReadOnly] 检测到分享链接，token:', token);
+    diag('🚀 只读模式启动 v3.0');
+    diag('🔗 token: ' + token.substring(0, 8) + '...');
 
     try {
       // 加载分享数据
@@ -257,21 +299,42 @@
         throw new Error('云端分享模块未加载');
       }
 
+      diag('⏳ 正在从云端下载数据...');
       var shareData = await window.OCCloudShare.loadData(token);
-      console.log('[ReadOnly] 数据加载成功:', shareData.title);
+      diag('✅ 数据下载完成：' + shareData.title);
 
-      // 应用数据（必须 await —— 手机上 IndexedDB 初始化慢，不 await 会导致页面渲染时 localStorage 还是空的）
-      await applyShareData(shareData);
-      console.log('[ReadOnly] applyShareData 完成，触发页面重新渲染');
+      // 应用数据
+      var success = await applyShareData(shareData);
+      if (!success) {
+        diag('❌ 数据应用失败');
+        return;
+      }
 
-      // 数据写入后强制重新渲染（main.js 可能在数据写入前就已经渲染了空页面）
+      // 验证：从 localStorage 读回数据，检查图片是否可读
+      try {
+        var verify = window.ocStorage ? window.ocStorage.get('chuxiyan_oc_archive') : JSON.parse(localStorage.getItem('chuxiyan_oc_archive') || '{}');
+        if (verify && verify.data) {
+          var verifyStats = countImages(verify);
+          diag('🔍 验证：读回 ' + verifyStats.count + ' 张图片（' + Math.round(verifyStats.totalSize / 1024) + 'KB）');
+        }
+      } catch (ve) {
+        diag('⚠️ 验证读取异常：' + ve.message);
+      }
+
+      // 数据写入后强制重新渲染
+      diag('🔄 触发页面重新渲染...');
       if (window.OCStorage && typeof window.OCStorage.autoRestore === 'function') {
-        try { window.OCStorage.autoRestore(); } catch (e) { console.warn('[ReadOnly] autoRestore 失败:', e); }
+        try { window.OCStorage.autoRestore(); diag('✅ autoRestore 已调用'); } catch (e) { diag('❌ autoRestore 失败：' + e.message); }
+      } else {
+        diag('⚠️ OCStorage.autoRestore 不存在');
       }
       if (window.OCEdit && typeof window.OCEdit.refreshAllFromStorage === 'function') {
-        try { window.OCEdit.refreshAllFromStorage(); } catch (e) { console.warn('[ReadOnly] refreshAll 失败:', e); }
+        try { window.OCEdit.refreshAllFromStorage(); diag('✅ refreshAllFromStorage 已调用'); } catch (e) { diag('❌ refreshAll 失败：' + e.message); }
+      } else {
+        diag('⚠️ OCEdit.refreshAllFromStorage 不存在');
       }
-      // 再延迟一次刷新（等图片异步加载完成后占位图替换为真实图片）
+
+      // 延迟刷新（等图片异步加载）
       setTimeout(function () {
         if (window.OCStorage && typeof window.OCStorage.autoRestore === 'function') {
           try { window.OCStorage.autoRestore(); } catch (e) {}
@@ -279,6 +342,7 @@
         if (window.OCEdit && typeof window.OCEdit.refreshAllFromStorage === 'function') {
           try { window.OCEdit.refreshAllFromStorage(); } catch (e) {}
         }
+        diag('🔄 500ms 后再次刷新');
       }, 500);
       setTimeout(function () {
         if (window.OCStorage && typeof window.OCStorage.autoRestore === 'function') {
@@ -287,6 +351,12 @@
         if (window.OCEdit && typeof window.OCEdit.refreshAllFromStorage === 'function') {
           try { window.OCEdit.refreshAllFromStorage(); } catch (e) {}
         }
+        diag('🔄 1500ms 后第三次刷新');
+        // 3秒后隐藏诊断面板
+        setTimeout(function () {
+          var el = document.getElementById('readonly-diag');
+          if (el) el.style.opacity = '0.5';
+        }, 1500);
       }, 1500);
 
       // 增加浏览次数
@@ -302,7 +372,7 @@
       delayedLock();
 
     } catch (e) {
-      console.error('[ReadOnly] 加载失败:', e);
+      diag('❌ 加载失败：' + (e.message || '未知错误'));
       var errBanner = document.querySelector('.readonly-banner .banner-sub');
       if (errBanner) {
         errBanner.textContent = '数据加载失败：' + (e.message || '未知错误');
@@ -321,5 +391,5 @@
     init();
   }
 
-  console.log('[ReadOnly] 只读模式模块加载完成 v2.0 · 手机适配版');
+  console.log('[ReadOnly] 只读模式模块加载完成 v3.0 · 直写 localStorage · 手机适配版');
 })();
