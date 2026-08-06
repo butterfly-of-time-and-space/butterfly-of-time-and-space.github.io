@@ -1,15 +1,16 @@
 /* ═══════════════════════════════════════════════════════════════
   云端分享模块 · cloud-share.js
   ═══════════════════════════════════════════════════════════════
-  版本：v3.0 · 2026-08-06 23:13
+  版本：v3.1 · 2026-08-06 23:20
   修复：compressImage 不再短路（所有图都强制 Canvas 重编码）
+  参数：800px / JPEG 0.7（接收端图片能正常显示）
   ═══════════════════════════════════════════════════════════════ */
 
 (function () {
   'use strict';
 
   // ── 版本标记（方便确认是否新代码）───────────────────────────
-  console.log('[CloudShare] 模块加载 v3.0 · 2026-08-06 23:13 · 修复版');
+  console.log('[CloudShare] 模块加载 v3.1 · 2026-08-06 23:20 · 800px/JPEG 0.7');
 
   window.OCCloudShare = {
     generateLink: null,
@@ -150,7 +151,7 @@
           var base64 = window.OCImageStore.get(obj);
           if (!base64) return '';
           var before = base64.length;
-          var compressed = await compressImage(base64, 1200, 0.8);
+          var compressed = await compressImage(base64, 800, 0.7);
           if (compressed.length < before) {
             stats.count++;
             stats.totalSaved += (before - compressed.length);
@@ -160,7 +161,7 @@
         // 已经是 base64 的图片数据
         if (obj.indexOf('data:image/') === 0 && obj.length > 5000) {
           var before2 = obj.length;
-          var compressed2 = await compressImage(obj, 1200, 0.8);
+          var compressed2 = await compressImage(obj, 800, 0.7);
           if (compressed2.length < before2) {
             stats.count++;
             stats.totalSaved += (before2 - compressed2.length);
