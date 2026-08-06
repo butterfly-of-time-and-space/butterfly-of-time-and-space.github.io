@@ -26,6 +26,10 @@
 
   // 正在异步加载中的 key 集合（避免重复加载）
   var loadingKeys = {};
+  // 待加载队列 + 并发限制（避免同时发起过多 IndexedDB 事务）
+  var pendingQueue = [];
+  var MAX_CONCURRENT = 3;
+  var activeLoads = 0;
 
   // 占位图：图片未加载到缓存时显示
   var PLACEHOLDER_SVG = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjE1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjE1MCIgZmlsbD0iIzJhMWQzZSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMiIgZmlsbD0iIzgwODBjMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPuaKgOacr+Wksei0rTwvdGV4dD48L3N2Zz4=';
@@ -47,7 +51,7 @@
       req.onsuccess = function (e) {
         db = e.target.result;
 
-        // 只获取 key 列表，不加载值
+        // 只获取 key 列表，不预加载图片值（避免大量 base64 同时进内存导致 OOM）
         try {
           var tx = db.transaction(STORE, 'readonly');
           var store = tx.objectStore(STORE);
@@ -55,50 +59,10 @@
 
           keysReq.onsuccess = function () {
             allKeys = keysReq.result || [];
-
-            if (allKeys.length > 0) {
-              // 预加载所有图片到内存缓存，确保 get() 直接返回真实数据
-              console.log('[ImageStore] DB 已就绪，共 ' + allKeys.length + ' 张图片，预加载中...');
-              try {
-                var preTx = db.transaction(STORE, 'readonly');
-                var preStore = preTx.objectStore(STORE);
-                var cursorReq = preStore.openCursor();
-                var loadedCount = 0;
-
-                cursorReq.onsuccess = function (ev) {
-                  var cursor = ev.target.result;
-                  if (cursor) {
-                    if (typeof cursor.value === 'string') {
-                      OCImageStore._cache[cursor.key] = cursor.value;
-                    }
-                    loadedCount++;
-                    cursor.continue();
-                  } else {
-                    console.log('[ImageStore] 预加载完成，' + loadedCount + ' 张图片已缓存');
-                    ready = true;
-                    readyCallbacks.forEach(function (cb) { cb(); });
-                    readyCallbacks = [];
-                  }
-                };
-
-                cursorReq.onerror = function () {
-                  console.warn('[ImageStore] 预加载失败，降级按需加载');
-                  ready = true;
-                  readyCallbacks.forEach(function (cb) { cb(); });
-                  readyCallbacks = [];
-                };
-              } catch (preErr) {
-                console.warn('[ImageStore] 预加载异常:', preErr);
-                ready = true;
-                readyCallbacks.forEach(function (cb) { cb(); });
-                readyCallbacks = [];
-              }
-            } else {
-              console.log('[ImageStore] DB 已就绪，无图片');
-              ready = true;
-              readyCallbacks.forEach(function (cb) { cb(); });
-              readyCallbacks = [];
-            }
+            console.log('[ImageStore] DB 已就绪，共 ' + allKeys.length + ' 张图片（按需加载，不预加载）');
+            ready = true;
+            readyCallbacks.forEach(function (cb) { cb(); });
+            readyCallbacks = [];
           };
 
           keysReq.onerror = function () {
@@ -132,31 +96,52 @@
   // ── 异步从 IndexedDB 加载单个图片到缓存 ──────────────────
   function asyncLoad(key) {
     if (loadingKeys[key]) return; // 已在加载中
+    if (OCImageStore._cache[key]) return; // 已在缓存中
     if (!db) return;
 
-    loadingKeys[key] = true;
-    try {
-      var tx = db.transaction(STORE, 'readonly');
-      var store = tx.objectStore(STORE);
-      var req = store.get(key);
+    // 加入队列，由 processQueue 控制并发
+    pendingQueue.push(key);
+    processQueue();
+  }
 
-      req.onsuccess = function (e) {
-        var val = e.target.result;
-        if (typeof val === 'string') {
-          OCImageStore._cache[key] = val;
-        }
-        delete loadingKeys[key];
-        // 通知页面刷新（如果有回调）
-        if (OCImageStore.onImageLoaded) {
-          OCImageStore.onImageLoaded(key);
-        }
-      };
+  function processQueue() {
+    while (activeLoads < MAX_CONCURRENT && pendingQueue.length > 0) {
+      var key = pendingQueue.shift();
+      if (loadingKeys[key] || OCImageStore._cache[key]) continue;
 
-      req.onerror = function () {
+      loadingKeys[key] = true;
+      activeLoads++;
+
+      try {
+        var tx = db.transaction(STORE, 'readonly');
+        var store = tx.objectStore(STORE);
+        var req = store.get(key);
+
+        req.onsuccess = function (e) {
+          var val = e.target.result;
+          if (typeof val === 'string') {
+            OCImageStore._cache[key] = val;
+          }
+          delete loadingKeys[key];
+          activeLoads--;
+          // 通知页面刷新（如果有回调）
+          if (OCImageStore.onImageLoaded) {
+            OCImageStore.onImageLoaded(key);
+          }
+          // 继续处理队列
+          processQueue();
+        };
+
+        req.onerror = function () {
+          delete loadingKeys[key];
+          activeLoads--;
+          processQueue();
+        };
+      } catch (e) {
         delete loadingKeys[key];
-      };
-    } catch (e) {
-      delete loadingKeys[key];
+        activeLoads--;
+        processQueue();
+      }
     }
   }
 
@@ -261,6 +246,8 @@
       this._cache = {};
       allKeys = [];
       loadingKeys = {};
+      pendingQueue = [];
+      activeLoads = 0;
       if (db) {
         try {
           var tx = db.transaction(STORE, 'readwrite');
@@ -311,4 +298,26 @@
 
   window.OCImageStore = OCImageStore;
   window.ocStorage = ocStorage;
+
+  // ── 图片加载完成后的自动刷新（防抖）────────────────────────
+  // 当图片从 IndexedDB 异步加载到缓存后，触发页面重新渲染
+  // 这样图片会从占位图变为真实图片
+  var refreshTimer = null;
+  var refreshCount = 0;
+  OCImageStore.onImageLoaded = function (key) {
+    refreshCount++;
+    // 防抖：积累一批加载完成后再刷新，避免频繁重渲染
+    if (refreshTimer) clearTimeout(refreshTimer);
+    refreshTimer = setTimeout(function () {
+      refreshTimer = null;
+      // 重新从 localStorage 读取并渲染（此时已加载的图片会从缓存中获取 base64）
+      if (window.OCStorage && typeof window.OCStorage.autoRestore === 'function') {
+        window.OCStorage.autoRestore();
+      }
+      if (window.OCEdit && typeof window.OCEdit.refreshAllFromStorage === 'function') {
+        window.OCEdit.refreshAllFromStorage();
+      }
+      refreshCount = 0;
+    }, 300);
+  };
 })();

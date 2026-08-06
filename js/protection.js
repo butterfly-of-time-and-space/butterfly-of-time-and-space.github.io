@@ -42,20 +42,33 @@
 
   // ── 5. 水印覆盖层 ────────────────────────────────────────
   function createWatermark() {
+    // SVG data URL —— 抽成变量避免引号嵌套混乱
+    // 这里"楚汐言的OC世界 · 禁止截图"做了 URL 编码（UTF-8 百分号编码），
+    // 内部全部用单引号，外层 cssText 用 + 拼接，无需任何 JS 字符串转义。
+    var wmText = '%E6%99%9C%E6%B1%9F%E8%A8%80%E7%9A%84OC%E4%B8%96%E7%95%8C%C2%B7%E7%A6%81%E6%AD%A2%E6%88%AA%E5%9B%BE';
+    var wmSvg = [
+      "data:image/svg+xml,",
+      "%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='220'%3E",
+      "%3Ctext x='20' y='50' font-family='serif' font-size='18' fill='%23c8b8e8' transform='rotate(-25 20 50)'%3E",
+      wmText,
+      "%3C/text%3E",
+      "%3Ctext x='20' y='140' font-family='serif' font-size='18' fill='%23c8b8e8' transform='rotate(-25 20 140)'%3E",
+      wmText,
+      "%3C/text%3E",
+      "%3C/svg%3E"
+    ].join('');
+
     var wm = document.createElement('div');
     wm.id = 'watermark-layer';
-    wm.style.cssText = [
-      'position: fixed',
-      'top: 0',
-      'left: 0',
-      'width: 100vw',
-      'height: 100vh',
-      'pointer-events: none',
-      'z-index: 99997',
-      'opacity: 0.035',
-      'background-image: url("data:image/svg+xml,%3Csvg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'300\\' height=\\'200\\'%3E%3Ctext x=\\'20\\' y=\\'40\\' font-family=\\'serif\\' font-size=\\'16\\' fill=\\'%23c8b8e8\\' transform=\\'rotate(-25 20 40)\\'%3E楚汐言的OC世界 · 禁止截图%3C/text%3E%3Ctext x=\\'20\\' y=\\'120\\' font-family=\\'serif\\' font-size=\\'16\\' fill=\\'%23c8b8e8\\' transform=\\'rotate(-25 20 120)\\'%3E楚汐言的OC世界 · 禁止截图%3C/text%3E%3C/svg%3E")',
-      'background-repeat: repeat'
-    ].join(';');
+    wm.style.cssText =
+      'position:fixed;' +
+      'top:0;left:0;' +
+      'width:100vw;height:100vh;' +
+      'pointer-events:none;' +
+      'z-index:99997;' +
+      'opacity:0.04;' +
+      "background-image:url('" + wmSvg + "');" +
+      'background-repeat:repeat;';
     document.body.appendChild(wm);
   }
 

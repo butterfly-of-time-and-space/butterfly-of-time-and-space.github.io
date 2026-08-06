@@ -11,18 +11,18 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@400;600;700&family=ZCOOL+XiaoWei&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="css/style.css?v=20260806b" />
-  <link rel="stylesheet" href="css/intro.css?v=20260806b" />
-  <link rel="stylesheet" href="css/world.css?v=20260806b" />
-  <link rel="stylesheet" href="css/edit.css?v=20260806b" />
-  <link rel="stylesheet" href="css/music-player.css?v=20260806b" />
+  <link rel="stylesheet" href="css/style.css?v=20260806i" />
+  <link rel="stylesheet" href="css/intro.css?v=20260806i" />
+  <link rel="stylesheet" href="css/world.css?v=20260806i" />
+  <link rel="stylesheet" href="css/edit.css?v=20260806i" />
+  <link rel="stylesheet" href="css/music-player.css?v=20260806i" />
 </head>
 <body>
 
   <!-- ═══════════════════════════════════════════════════════════
        开屏动画层
        ═══════════════════════════════════════════════════════════ -->
-  <div id="intro-screen" class="screen active">
+  <div id="intro-screen" class="screen">
 
     <!-- 跳过动画按钮 -->
     <button id="skip-intro" class="skip-intro-btn" title="跳过开屏动画">跳过</button>
@@ -78,7 +78,7 @@
   <!-- ═══════════════════════════════════════════════════════════
        世界观简介页面
        ═══════════════════════════════════════════════════════════ -->
-  <div id="world-page" class="screen">
+  <div id="world-page" class="screen active">
 
     <!-- 顶部导航条 -->
     <header class="top-bar">
@@ -93,6 +93,8 @@
         <button id="btn-import" class="top-bar-btn" title="导入存档文件">导入</button>
         <button id="btn-delete-archive" class="top-bar-btn top-bar-btn-danger" title="删除全部存档数据">删除存档</button>
         <button id="btn-publish-display" class="top-bar-btn top-bar-btn-publish" title="导出展示版数据">发布分享</button>
+        <button id="btn-cloud-share" class="top-bar-btn top-bar-btn-cloud" title="上传到云端并生成分享链接">云端分享</button>
+        <button id="btn-my-shares" class="top-bar-btn" title="管理我的分享存档">我的存档</button>
         <input type="file" id="import-file-input" accept=".json" style="display:none" />
       </div>
     </header>
@@ -1658,6 +1660,22 @@
 
 
   <!-- ═══════════════════════════════════════════════════════════
+       我的存档页面
+       ═══════════════════════════════════════════════════════════ -->
+  <div id="my-shares-page" class="screen">
+    <header class="top-bar">
+      <div class="top-bar-left">
+        <button id="btn-back-my-shares" class="top-bar-btn">返回</button>
+        <span class="site-title">我的存档</span>
+      </div>
+      <div class="top-bar-right">
+      </div>
+    </header>
+    <main class="my-shares-content" style="max-width:800px;margin:0 auto;padding:20px;">
+    </main>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
        Toast 提示
        ═══════════════════════════════════════════════════════════ -->
   <div id="toast" class="toast"></div>
@@ -1666,20 +1684,171 @@
   <!-- ═══════════════════════════════════════════════════════════
        脚本
        ═══════════════════════════════════════════════════════════ -->
-  <script src="js/protection.js?v=20260806b"></script>
-  <script src="js/imagestore.js?v=20260806b"></script>
-  <script src="js/storage.js?v=20260806b"></script>
-  <script src="js/intro.js?v=20260806b"></script>
-  <script src="js/world.js?v=20260806b"></script>
-  <!-- 图片灯箱 -->
+  <!-- ═══════════════════════════════════════════════════════════
+       顶层 UI 元素（必须在所有脚本之前已存在于 DOM）
+       ═══════════════════════════════════════════════════════════ -->
+
+  <!-- 图片灯箱（OC绿泡泡用） -->
   <div id="lpp-image-lightbox" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:99999;align-items:center;justify-content:center;cursor:zoom-out;">
     <img id="lpp-lightbox-img" src="" style="max-width:90%;max-height:90%;border-radius:8px;object-fit:contain;box-shadow:0 4px 30px rgba(0,0,0,0.5);" />
   </div>
 
-  <script src="js/share.js?v=20260806b"></script>
-  <script src="js/edit.js?v=20260806b"></script>
-  <script src="js/main.js?v=20260806b"></script>
-  <script src="js/music-player.js?v=20260806b"></script>
+  <!-- Toast 提示层（main.js 会用到） -->
+  <div id="toast" class="toast" aria-live="polite"></div>
+
+  <!-- 启动错误显示层（仅显示真正的致命错误，可关闭） -->
+  <div id="startup-error" style="display:none;position:fixed;top:16px;left:16px;right:16px;max-height:60vh;overflow:auto;background:rgba(46,16,32,0.96);color:#ffc4c4;padding:16px 20px;border-radius:10px;z-index:999999;font-family:'Noto Serif SC',serif;font-size:13px;line-height:1.7;border:1px solid rgba(255,120,120,0.4);box-shadow:0 4px 24px rgba(0,0,0,0.5);">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+      <div style="font-size:15px;font-weight:600;color:#ff8a8a;">⚠️ 启动时遇到问题</div>
+      <div style="display:flex;gap:8px;">
+        <button id="startup-error-copy" style="background:rgba(255,138,138,0.2);color:#ffc4c4;border:1px solid rgba(255,138,138,0.4);border-radius:5px;padding:3px 10px;font-size:11px;cursor:pointer;font-family:inherit;">复制错误</button>
+        <button id="startup-error-close" style="background:rgba(255,138,138,0.2);color:#ffc4c4;border:1px solid rgba(255,138,138,0.4);border-radius:5px;padding:3px 10px;font-size:11px;cursor:pointer;font-family:inherit;">✕ 关闭</button>
+      </div>
+    </div>
+    <div id="startup-error-msg" style="white-space:pre-wrap;font-family:'Consolas','Courier New',monospace;font-size:12px;"></div>
+    <div style="margin-top:12px;font-size:12px;color:#cc8a8a;">按 F12 打开控制台可查看详细错误。如果反复崩溃，请尝试 <strong>Ctrl+Shift+R</strong> 强制刷新，或清除浏览器缓存。</div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       脚本加载顺序（依赖：先加载被依赖的，再加载依赖方）
+       版号统一改为 ?v=20260806i 强制浏览器刷新缓存
+       ═══════════════════════════════════════════════════════════ -->
+
+  <!-- 全局错误捕获：只显示真正的致命错误，过滤插件/CDN/跨域等非致命错误 -->
+  <script>
+    (function () {
+      window.__startupErrors = [];
+      window.__supabaseCDNFailed = false;
+
+      function captureError(label, info) {
+        var msg = '[ ' + label + ' ]\n' + (info || '') + '\n';
+        window.__startupErrors.push(msg);
+        console.error(label, info);
+        var box = document.getElementById('startup-error');
+        var text = document.getElementById('startup-error-msg');
+        if (box && text) {
+          box.style.display = 'block';
+          text.textContent = window.__startupErrors.join('\n');
+        }
+      }
+
+      // 判断是否为非致命错误（插件、CDN、跨域、网络等）
+      function isNonFatalError(msg, filename) {
+        if (!msg) msg = '';
+        if (!filename) filename = '';
+        var s = (msg + ' ' + filename).toLowerCase();
+
+        // 跨域脚本错误（浏览器只报 "Script error."，无详情）
+        if (msg === 'Script error.' || msg === 'Script error') return true;
+
+        // 浏览器扩展注入的错误
+        if (filename.indexOf('chrome-extension://') !== -1 ||
+            filename.indexOf('moz-extension://') !== -1 ||
+            filename.indexOf('safari-extension://') !== -1 ||
+            filename.indexOf('extension://') !== -1) return true;
+
+        // CDN 脚本加载失败
+        if (filename.indexOf('cdn.jsdelivr.net') !== -1 ||
+            filename.indexOf('unpkg.com') !== -1 ||
+            filename.indexOf('cdnjs.cloudflare.com') !== -1) return true;
+
+        // Supabase / 网络相关
+        if (s.indexOf('supabase') !== -1 || s.indexOf('fetch') !== -1 ||
+            s.indexOf('network') !== -1 || s.indexOf('failed to fetch') !== -1 ||
+            s.indexOf('websocket') !== -1 || s.indexOf('realtime') !== -1 ||
+            s.indexOf('relation') !== -1 || s.indexOf('does not exist') !== -1 ||
+            s.indexOf('net::err') !== -1 || s.indexOf('load failed') !== -1) return true;
+
+        // 资源加载失败（图片、字体等）
+        if (s.indexOf('error loading') !== -1 && s.indexOf('resource') !== -1) return true;
+
+        return false;
+      }
+
+      // 关闭按钮
+      document.addEventListener('DOMContentLoaded', function () {
+        var closeBtn = document.getElementById('startup-error-close');
+        if (closeBtn) {
+          closeBtn.addEventListener('click', function () {
+            var box = document.getElementById('startup-error');
+            if (box) box.style.display = 'none';
+          });
+        }
+        var copyBtn = document.getElementById('startup-error-copy');
+        if (copyBtn) {
+          copyBtn.addEventListener('click', function () {
+            var text = document.getElementById('startup-error-msg');
+            if (text && text.textContent) {
+              if (navigator.clipboard) {
+                navigator.clipboard.writeText(text.textContent).then(function () {
+                  copyBtn.textContent = '已复制!';
+                  setTimeout(function () { copyBtn.textContent = '复制错误'; }, 2000);
+                }).catch(function () {
+                  // 降级方案
+                  var ta = document.createElement('textarea');
+                  ta.value = text.textContent;
+                  document.body.appendChild(ta);
+                  ta.select();
+                  try { document.execCommand('copy'); } catch (e) {}
+                  document.body.removeChild(ta);
+                  copyBtn.textContent = '已复制!';
+                  setTimeout(function () { copyBtn.textContent = '复制错误'; }, 2000);
+                });
+              }
+            }
+          });
+        }
+      });
+
+      window.addEventListener('error', function (e) {
+        var msg = e.message || '';
+        var filename = e.filename || '';
+        // 过滤非致命错误
+        if (isNonFatalError(msg, filename)) {
+          console.warn('[过滤] 非致命错误（已静默）:', msg, filename);
+          return;
+        }
+        captureError('JS 错误', msg + (filename ? '\n文件: ' + filename : '') + (e.lineno ? '\n行号: ' + e.lineno : ''));
+      });
+
+      window.addEventListener('unhandledrejection', function (e) {
+        var msg = (e.reason && e.reason.message) || String(e.reason || '');
+        var reasonStr = String(e.reason || '');
+        // 过滤非致命错误
+        if (isNonFatalError(msg, reasonStr)) {
+          console.warn('[过滤] 非致命 Promise 拒绝（已静默）:', msg);
+          e.preventDefault && e.preventDefault();
+          return;
+        }
+        captureError('未处理的 Promise 拒绝', msg);
+      });
+    })();
+  </script>
+
+  <!-- Supabase SDK（CDN，可在 main.js 里 fail-safe 检测） -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
+    onerror="window.__supabaseCDNFailed = true; console.warn('[Supabase] CDN 加载失败，云端分享功能不可用（不影响其他功能）');"></script>
+
+  <!-- 核心模块（顺序加载：保护 → 图片库 → 存档 → 开屏 → 世界 → 分享 → 编辑 → 主逻辑 → 音乐） -->
+  <script src="js/supabase-config.js?v=20260806i"></script>
+  <script src="js/protection.js?v=20260806i"></script>
+  <script src="js/imagestore.js?v=20260806i"></script>
+  <script src="js/storage.js?v=20260806i"></script>
+  <!-- 开屏动画暂时禁用（排查内存问题时关闭）
+  <script src="js/intro.js?v=20260806i"></script>
+  -->
+  <script src="js/world.js?v=20260806i"></script>
+  <script src="js/share.js?v=20260806i"></script>
+  <script src="js/edit.js?v=20260806i"></script>
+  <script src="js/main.js?v=20260806i"></script>
+  <script src="js/music-player.js?v=20260806i"></script>
+
+  <!-- 云端分享模块（任一失败不影响主功能） -->
+  <script src="js/cloud-share.js?v=20260806i"></script>
+  <script src="js/cloud-share-ui.js?v=20260806i"></script>
+  <script src="js/readonly-mode.js?v=20260806i"></script>
+  <script src="js/watermark.js?v=20260806i"></script>
+  <script src="js/my-shares.js?v=20260806i"></script>
 
 </body>
 </html>
